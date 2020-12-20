@@ -9,7 +9,6 @@ INSERT INTO test(name) VALUES
 ('!')
 ;
 
-drop table users cascade;
 CREATE TABLE IF NOT EXISTS users (
 	id INTEGER PRIMARY KEY
 	,first_name TEXT
@@ -32,14 +31,12 @@ INSERT INTO game_modes(game_mode) VALUES
 	ON CONFLICT DO NOTHING
 ;
 
-DROP table chats cascade;
 CREATE TABLE IF NOT EXISTS chats (
 	id INTEGER PRIMARY KEY
 	,game_mode INTEGER REFERENCES game_modes(id)
 
 );
 
-DROP TABLE points cascade;
 CREATE TABLE IF NOT EXISTS points(
 	id serial PRIMARY KEY
 	,chat_id INTEGER REFERENCES chats(id)
@@ -50,9 +47,9 @@ CREATE TABLE IF NOT EXISTS points(
 CREATE TABLE IF NOT EXISTS teams (
 	id serial PRIMARY KEY
 	,name TEXT UNIQUE
-	,wins INTEGER
-	,losses INTEGER
-	,srs NUMERIC(4,2)
+	,wins INTEGER DEFAULT 0
+	,losses INTEGER DEFAULT 0
+	,srs NUMERIC(4,2) DEFAULT 0
 
 );
 
@@ -60,13 +57,19 @@ CREATE TABLE IF NOT EXISTS games (
 	id SERIAL PRIMARY KEY
 	,date_time TIMESTAMPTZ
 	,away_team INTEGER REFERENCES teams(id)
-	,away_points INTEGER
+	,away_points INTEGER DEFAULT 0
 	,home_team INTEGER REFERENCES teams(id)
-	,home_points INTEGER REFERENCES teams(id)
+	,home_points INTEGER DEFAULT 0 
 );
 
 
 SET timezone = 'America/New_York';
+
+CREATE TABLE IF NOT EXISTS polls (
+	id INTEGER PRIMARY KEY
+	,game INTEGER REFERENCES games(id)
+);
+
 
 CREATE TABLE IF NOT EXISTS bets (
 	id SERIAL PRIMARY KEY
@@ -74,6 +77,7 @@ CREATE TABLE IF NOT EXISTS bets (
 	,chat_id INTEGER REFERENCES chats(id)
 	,user_id INTEGER REFERENCES users(id)
 	,bet INTEGER REFERENCES teams(id)
+	,poll INTEGER REFERENCES polls(id)
 );
 
 
@@ -83,12 +87,15 @@ INSERT INTO users(id, first_name) VALUES
 	,(3, 'C')
 	,(4, 'D')
 	,(5, 'E')
+
+	ON CONFLICT DO NOTHING
 	;
 
 
 INSERT INTO chats VALUES
-	(100)
-	,(200)
+	(100, 1)
+	,(200, 4)
+	ON CONFLICT DO NOTHING
 	;
 
 INSERT INTO points(chat_id, user_id, points) VALUES 
@@ -121,3 +128,25 @@ CREATE OR REPLACE VIEW rankings AS
 		chats ON points.chat_id = chats.id
 ;
 			
+CREATE OR REPLACE VIEW full_game_information AS
+	SELECT 
+		games.id AS game_id
+		,games.date_time
+		,games.away_team AS away_team_id
+		,t1.name AS away_team
+		--,games.away_points
+		,t1.srs AS srs_away
+		,games.home_team AS home_team_id
+		,t2.name AS home_team
+		--,games.home_points
+		,t2.srs as srs_home
+		,t1.srs + t2.srs AS srs_sum
+
+	FROM games 
+	JOIN
+	teams AS t1 ON games.away_team = t1.id
+	JOIN 
+	teams AS t2 ON games.home_team = t2.id
+
+	ORDER BY date_time ASC
+;
