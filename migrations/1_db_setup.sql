@@ -1,16 +1,6 @@
-CREATE TABLE IF NOT EXISTS test (
-	id serial,
-	name TEXT
-);
-
-INSERT INTO test(name) VALUES
-('hello'),
-('world'),
-('!')
-;
 
 CREATE TABLE IF NOT EXISTS users (
-	id INTEGER PRIMARY KEY
+	id BIGINT PRIMARY KEY
 	,first_name TEXT
 	,last_name TEXT
 	,username TEXT
@@ -18,30 +8,41 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS game_modes (
-	id SERIAL PRIMARY KEY
+	id INTEGER PRIMARY KEY
 	,game_mode TEXT UNIQUE
+	,number_of_games INTEGER
 );
 
-INSERT INTO game_modes(game_mode) VALUES
-	('full')
-	,('half')
-	,('10')
-	,('5')
+INSERT INTO game_modes(id, game_mode, number_of_games) VALUES
+	(1, 'full', 1000)
+	,(2, 'best_of', 10)
 
 	ON CONFLICT DO NOTHING
 ;
 
-CREATE TABLE IF NOT EXISTS chats (
+CREATE TABLE IF NOT EXISTS ranking_systems (
 	id INTEGER PRIMARY KEY
-	,game_mode INTEGER REFERENCES game_modes(id)
+	,ranking_system TEXT UNIQUE
+);
+
+INSERT INTO ranking_systems(id, ranking_system) VALUES 
+	(1, 'weekly')
+	,(2, 'per_game')
+	ON CONFLICT DO NOTHING
+;
+
+CREATE TABLE IF NOT EXISTS chats (
+	id BIGINT PRIMARY KEY
+	,game_mode INTEGER REFERENCES game_modes(id) DEFAULT 2
+	,ranking_system INTEGER REFERENCES ranking_systems(id) DEFAULT 1
 
 );
 
 CREATE TABLE IF NOT EXISTS points(
 	id serial PRIMARY KEY
-	,chat_id INTEGER REFERENCES chats(id)
-	,user_id INTEGER REFERENCES users(id)
-	,points INTEGER 
+	,chat_id BIGINT REFERENCES chats(id)
+	,user_id BIGINT REFERENCES users(id)
+	,points INTEGER DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS teams (
@@ -62,57 +63,55 @@ CREATE TABLE IF NOT EXISTS games (
 	,home_points INTEGER DEFAULT 0 
 );
 
-
-SET timezone = 'America/New_York';
+CREATE TABLE IF NOT EXISTS bet_weeks (
+	id SERIAL PRIMARY KEY
+	,chat_id BIGINT REFERENCES chats(id)
+	,week_number INT
+	,start_date DATE
+	,end_date DATE
+	,polls_sent BOOLEAN DEFAULT False
+);
 
 CREATE TABLE IF NOT EXISTS polls (
-	id INTEGER PRIMARY KEY
-	,game INTEGER REFERENCES games(id)
+	id TEXT PRIMARY KEY
+	,local_id INT
+	,game_id INTEGER REFERENCES games(id)
+	,chat_id BIGINT REFERENCES chats(id)
+	,is_open BOOLEAN DEFAULT TRUE
+	,poll_sent_date DATE
+	,bet_week_id INTEGER REFERENCES bet_weeks(id)
+	
 );
+
+
+--CREATE TABLE IF NOT EXISTS polls_sent (
+--	id SERIAL PRIMARY KEY
+--	,chat_id INTEGER REFERENCES chats(id)
+--	,poll INTEGER REFERENCES polls(id)
+--	,date DATE
+--);
 
 
 CREATE TABLE IF NOT EXISTS bets (
 	id SERIAL PRIMARY KEY
 	,game_id INTEGER REFERENCES games(id)
-	,chat_id INTEGER REFERENCES chats(id)
-	,user_id INTEGER REFERENCES users(id)
+	,chat_id BIGINT REFERENCES chats(id)
+	,user_id BIGINT REFERENCES users(id)
 	,bet INTEGER REFERENCES teams(id)
-	,poll INTEGER REFERENCES polls(id)
+	,poll_id TEXT REFERENCES polls(id)
 );
 
 
-INSERT INTO users(id, first_name) VALUES 
-	(1, 'A')
-	,(2, 'B')
-	,(3, 'C')
-	,(4, 'D')
-	,(5, 'E')
-
-	ON CONFLICT DO NOTHING
-	;
 
 
-INSERT INTO chats VALUES
-	(100, 1)
-	,(200, 4)
-	ON CONFLICT DO NOTHING
-	;
 
-INSERT INTO points(chat_id, user_id, points) VALUES 
-	(100, 1, 50)
-	,(100, 2, 99)
-	,(100, 3, 25)
-	,(200, 1, 20)
-	,(200, 2, 10)
-	,(200, 5, 80)
-	;
 --DROP VIEW rankings;
 CREATE OR REPLACE VIEW rankings AS 
 	SELECT
 		users.id AS user_id
-		--,users.first_name AS first_name
-		--,users.last_name AS last_name
-		--,users.username AS username
+		,users.first_name AS first_name
+		,users.last_name AS last_name
+		,users.username AS username
 		,chats.id AS chat_id
 		,points.points 
 		,RANK() OVER (
@@ -150,3 +149,24 @@ CREATE OR REPLACE VIEW full_game_information AS
 
 	ORDER BY date_time ASC
 ;
+
+CREATE OR REPLACE VIEW full_chat_information AS
+	SELECT 
+		chats.id AS chat_id
+		,chats.game_mode AS game_mode_id
+		,chats.ranking_system AS ranking_system_id
+		,game_modes.game_mode
+		,game_modes.number_of_games
+		,ranking_systems.ranking_system
+	FROM chats
+	JOIN
+	game_modes ON game_modes.id = chats.game_mode
+	JOIN
+	ranking_systems ON ranking_systems.id = chats.ranking_system
+;
+		
+
+
+ALTER DATABASE postgres SET timezone TO 'America/New_York';
+SELECT pg_reload_conf();
+

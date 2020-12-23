@@ -1,0 +1,34 @@
+[package]
+name = "basketball_betting_bot"
+version = "0.1.0"
+authors = ["Johannes Schwarzbart <schwarzbartj@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+#teloxide = {git = "https://github.com/teloxide/teloxide", branch="dev",features = ["sqlite-storage", "bincode-serializer", "redis-storage"]}
+teloxide = {version="0.3.3", features = ["redis-storage", "bincode-serializer"]}
+teloxide-macros = "0.3"
+rust-ini = "0.16.0"
+
+log = "0.4.8"
+pretty_env_logger = "0.4.0"
+
+tokio = { version =  "0.2.11", features = ["rt-threaded", "macros"] }
+
+chrono = "0.4.19"
+chrono-tz = "0.5.3"
+error-chain = "0.12.4"
+reqwest = "0.10.9"
+scraper = "0.12.0"
+serde = "1.0.118"
+lazy_static = "1.4.0"
+
+futures = "0.3.5"
+thiserror = "1.0.15"
+derive_more = "0.99.9"
+sqlx = {version = "0.4.1", features = ["postgres","time", "chrono","runtime-tokio-rustls", "bigdecimal"] }
+time = "0.2.23"
+timer = "0.2.0"
+

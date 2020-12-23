@@ -7,16 +7,22 @@
 2. Monday X o'clock?
 	- announce winner of the current week
 	- send out current user standings
-	- calculate the games of the week for the chat
+	- calculate the games of the week for the chat ->
+	use BBallRef's Simple Rating System (SRS) to determine best matchups of the week
+	```sql
+	select * from full_game_information where date_time < (now() + interval '7 days') ORDER BY srs_sum desc;  
+	```
 	- send out polls for each game
 	- ReadyState
 3. Tuesday X o'clock?
 	- end polls
 	- collect the poll results
+	- add everybody who answered poll for first time to user DB
 	- ReadyState
 4. Everyday X o'clock? 
 	- catch results
 	- update the user standings
+	- update teams table -> wins, losses, SRS
 	- ReadyState
 
 
@@ -38,12 +44,10 @@
 	5. How do you want to rank the participants? 
 		- 1 point per succesfull tip => the one with the most correct guesses wins the season
 		- only the one with the most correct tips/week gets the point => the one who won the most weeks wins
-	6. Is everybody who wants to participate in the group right now? 
-		- yes: 
-			- save everybody's user_id to sqlite
-			- "YOUR BETTING SEASON BEGINS NOW"
-			- send out the first polls
-		- no: "Please send /setup to begin the setup again once everybody is in the group"
+	~~6. Is everybody who wants to participate in the group right now?~~ (it's not possible to access all user_ids of a group)
+	6. 
+		- "YOUR BETTING SEASON BEGINS NOW"
+		- send out the first polls
 
 
 

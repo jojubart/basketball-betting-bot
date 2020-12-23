@@ -1,0 +1,9 @@
+CREATE TABLE test (
+	id serial,
+	name text
+);
+
+INSERT INTO test 
+("hello"),
+("world")
+;
