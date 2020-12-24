@@ -140,7 +140,8 @@ async fn ready(state: ReadyState, cx: TransitionIn, ans: String) -> TransitionOu
 
         "/rankings" | "/rankings@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
-            show_rankings(cx, &pool, chat_id).await;
+            //show_rankings(cx, &pool, chat_id).await;
+            show_week_rankings(cx, &pool, chat_id).await;
         }
         _ => (),
     }
@@ -474,6 +475,59 @@ async fn show_rankings(
                     }
                 },
                 points = record.points.unwrap()
+            )
+            .as_str(),
+        );
+    }
+
+    cx.answer_str(rankings).await;
+    Ok(())
+}
+
+async fn show_week_rankings(
+    cx: UpdateWithCx<Message>,
+    pool: &PgPool,
+    chat_id: i64,
+) -> Result<(), Error> {
+    let ranking_query = sqlx::query!(
+        r#"
+        SELECT first_name, last_name, username, correct_bets_week, week_number FROM weekly_rankings
+        WHERE
+        chat_id = $1
+        AND week_number = (SELECT MAX(week_number) FROM weekly_rankings WHERE chat_id = $1)
+        ORDER BY correct_bets_week DESC;
+
+        "#,
+        chat_id
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let mut rank: i32 = 0;
+    //let mut rankings = ranking_query
+    //    .into_iter()
+    //    .map(|record| format!("{}\n", record.first_name.unwrap().as_str()))
+    //    .collect::<String>();
+    let mut rankings = String::from("");
+
+    for record in ranking_query {
+        rankings.push_str(
+            &format!(
+                "{rank}. {first_name} {last_name} {username}\ncorrect bets this week: {correct_bets_week}\n",
+                rank = {
+                    rank += 1;
+                    rank
+                },
+                first_name = record.first_name.unwrap(),
+                last_name = record.last_name.unwrap(),
+                username = {
+                    let username = record.username.unwrap();
+                    match username.as_str() {
+                        "" => format!(""),
+                        _ => format!("@{}", username),
+                    }
+                },
+                correct_bets_week = record.correct_bets_week.unwrap()
             )
             .as_str(),
         );
