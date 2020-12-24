@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS points(
 
 CREATE TABLE IF NOT EXISTS teams (
 	id serial PRIMARY KEY
-	,name TEXT UNIQUE
+	,name TEXT UNIQUE 
 	,wins INTEGER DEFAULT 0
 	,losses INTEGER DEFAULT 0
 	,srs NUMERIC(4,2) DEFAULT 0
@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS games (
 	,away_points INTEGER DEFAULT 0
 	,home_team INTEGER REFERENCES teams(id)
 	,home_points INTEGER DEFAULT 0 
+	,UNIQUE (date_time, away_team, home_team)
 );
 
 CREATE TABLE IF NOT EXISTS bet_weeks (
@@ -164,8 +165,69 @@ CREATE OR REPLACE VIEW full_chat_information AS
 	JOIN
 	ranking_systems ON ranking_systems.id = chats.ranking_system
 ;
-		
 
+-- nested query necessary to avoid writing out CASE statement again in WHERE clause
+CREATE OR REPLACE VIEW game_winners AS
+	SELECT * FROM 
+	(SELECT
+		id AS game_id
+		,CASE
+			WHEN home_points > away_points THEN home_team
+			WHEN home_points < away_points THEN away_team
+		END AS winner
+		
+	FROM games) tmp
+	WHERE winner IS NOT NULL;
+
+
+CREATE OR REPLACE VIEW correct_bets AS
+	SELECT
+		bets.game_id
+		,bets.chat_id
+		,bets.user_id
+		,bets.bet
+		--,polls.chat_id
+		,bet_weeks.week_number
+		
+	FROM bets
+	JOIN
+		game_winners ON bets.bet = game_winners.winner
+	JOIN 
+		polls ON bets.poll_id = polls.id
+	JOIN bet_weeks ON polls.bet_week_id = bet_weeks.id
+
+	;
+
+CREATE OR REPLACE VIEW weekly_rankings AS
+SELECT
+	users.id
+	,users.first_name
+	,users.last_name
+	,users.username
+	,week_number
+	,correct_bets_week
+	,RANK() OVER (
+			PARTITION BY chat_id, week_number
+			ORDER BY correct_bets_week DESC
+		) rank_number
+
+FROM
+	users
+JOIN
+	(SELECT
+		users.id
+		,correct_bets.week_number
+		,count(*) AS correct_bets_week
+		,chat_id
+	FROM correct_bets 
+	JOIN 
+		users ON correct_bets.user_id = users.id
+	GROUP BY 
+		users.id
+		,chat_id
+		,correct_bets.week_number) as tmp
+	ON users.id = tmp.id
+;
 
 ALTER DATABASE postgres SET timezone TO 'America/New_York';
 SELECT pg_reload_conf();
