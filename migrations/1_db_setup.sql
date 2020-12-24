@@ -196,6 +196,7 @@ CREATE OR REPLACE VIEW correct_bets AS
 	JOIN 
 		polls ON bets.poll_id = polls.id
 	JOIN bet_weeks ON polls.bet_week_id = bet_weeks.id
+	WHERE game_winners.game_id = polls.game_id
 
 	;
 
@@ -207,6 +208,7 @@ SELECT
 	,users.username
 	,week_number
 	,correct_bets_week
+	,chat_id
 	,RANK() OVER (
 			PARTITION BY chat_id, week_number
 			ORDER BY correct_bets_week DESC
@@ -226,9 +228,43 @@ JOIN
 	GROUP BY 
 		users.id
 		,chat_id
-		,correct_bets.week_number) as tmp
+		,correct_bets.week_number
+
+	UNION
+
+	SELECT * FROM user_with_no_correct_bets_week
+	WHERE chat_id = user_with_no_correct_bets_week.chat_id
+	) as tmp
 	ON users.id = tmp.id
 ;
+
+
+CREATE OR REPLACE VIEW user_with_no_correct_bets_week AS
+SELECT
+	DISTINCT users.id
+	,bet_weeks.week_number
+	,0 as correct_bets_week
+	,bets.chat_id
+
+FROM 
+    users 
+JOIN bets ON users.id = bets.user_id
+JOIN bet_weeks ON bets.chat_id = bet_weeks.chat_id
+	
+WHERE users.id NOT IN 
+	(SELECT	
+		users.id 
+	FROM  
+	 users 
+	JOIN 
+		correct_bets ON users.id = correct_bets.user_id 
+	WHERE
+		correct_bets.week_number = bet_weeks.week_number
+		AND correct_bets.chat_id = bet_weeks.chat_id
+ )  
+;
+
+	
 
 ALTER DATABASE postgres SET timezone TO 'America/New_York';
 SELECT pg_reload_conf();
