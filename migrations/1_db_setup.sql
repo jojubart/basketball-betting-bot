@@ -200,6 +200,32 @@ CREATE OR REPLACE VIEW correct_bets AS
 
 	;
 
+CREATE OR REPLACE VIEW user_with_no_correct_bets_week AS
+SELECT
+	DISTINCT users.id
+	,bet_weeks.week_number
+	,0 as correct_bets_week
+	,bets.chat_id
+
+FROM 
+    users 
+JOIN bets ON users.id = bets.user_id
+JOIN bet_weeks ON bets.chat_id = bet_weeks.chat_id
+	
+WHERE users.id NOT IN 
+	(SELECT	
+		users.id 
+	FROM  
+	 users 
+	JOIN 
+		correct_bets ON users.id = correct_bets.user_id 
+	WHERE
+		correct_bets.week_number = bet_weeks.week_number
+		AND correct_bets.chat_id = bet_weeks.chat_id
+ )  
+;
+
+	
 CREATE OR REPLACE VIEW weekly_rankings AS
 SELECT
 	users.id
@@ -239,32 +265,6 @@ JOIN
 ;
 
 
-CREATE OR REPLACE VIEW user_with_no_correct_bets_week AS
-SELECT
-	DISTINCT users.id
-	,bet_weeks.week_number
-	,0 as correct_bets_week
-	,bets.chat_id
-
-FROM 
-    users 
-JOIN bets ON users.id = bets.user_id
-JOIN bet_weeks ON bets.chat_id = bet_weeks.chat_id
-	
-WHERE users.id NOT IN 
-	(SELECT	
-		users.id 
-	FROM  
-	 users 
-	JOIN 
-		correct_bets ON users.id = correct_bets.user_id 
-	WHERE
-		correct_bets.week_number = bet_weeks.week_number
-		AND correct_bets.chat_id = bet_weeks.chat_id
- )  
-;
-
-	
 
 ALTER DATABASE postgres SET timezone TO 'America/New_York';
 SELECT pg_reload_conf();
