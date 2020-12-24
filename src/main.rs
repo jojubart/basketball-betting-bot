@@ -30,19 +30,19 @@ async fn setup(state: SetupState, cx: TransitionIn, ans: String) -> TransitionOu
     .await
     .expect("Could not establish connection to database");
 
-    let chat_is_known = sqlx::query!("SELECT * FROM chats WHERE id = $1", chat_id)
-        .fetch_one(&pool)
-        .await;
+    //let chat_is_known = sqlx::query!("SELECT * FROM chats WHERE id = $1", chat_id)
+    //    .fetch_one(&pool)
+    //    .await;
 
-    if let Err(error) = chat_is_known {
-        println!("Error {:?}", error);
-        sqlx::query!(
-            "INSERT INTO chats(id) VALUES ($1) ON CONFLICT DO NOTHING",
-            chat_id
-        )
-        .execute(&pool)
-        .await;
-    }
+    //if let Err(error) = chat_is_known {
+    //    println!("Error {:?}", error);
+    //    sqlx::query!(
+    //        "INSERT INTO chats(id) VALUES ($1) ON CONFLICT DO NOTHING",
+    //        chat_id
+    //    )
+    //    .execute(&pool)
+    //    .await;
+    //}
 
     let admins = cx
         .bot
@@ -56,13 +56,21 @@ async fn setup(state: SetupState, cx: TransitionIn, ans: String) -> TransitionOu
         .from()
         .expect("Could not get information of the user!")
         .first_name;
-    if get_active_chat_status(&pool, chat_id)
-        .await
-        .unwrap_or(false)
-        == true
-    {
-        return next(ReadyState);
-    }
+    //if get_active_chat_status(&pool, chat_id)
+    //    .await
+    //    .unwrap_or(false)
+    //    == true
+    //{
+    //    match ans.as_str() {
+    //        "/rankings" | "/rankings@BasketballBettingBot" => {
+    //            let chat_id = cx.update.chat_id();
+    //            dbg!("setup ranking");
+    //            show_rankings(cx, &pool, chat_id).await;
+    //        }
+    //        _ => (),
+    //    }
+    //    return next(ReadyState);
+    //}
 
     //cx.answer_str("Once you're ready to start the season, send '/start' into this chat and you can start betting on some games!").await?;
     match ans.as_str() {
@@ -71,11 +79,15 @@ async fn setup(state: SetupState, cx: TransitionIn, ans: String) -> TransitionOu
             change_active_chat_status(&pool, chat_id, true)
                 .await
                 .unwrap();
+            cx.answer_str("Your season begins now!").await;
             send_polls(&pool, chat_id, &cx.bot).await.unwrap();
             dbg!("SEASONS STARTS");
             return next(ReadyState);
         }
-        _ => (),
+        _ => {
+            cx.answer_str("Send /start to begin your season!").await;
+            return next(SetupState);
+        }
     }
 
     next(SetupState)
@@ -90,7 +102,42 @@ async fn ready(state: ReadyState, cx: TransitionIn, ans: String) -> TransitionOu
     .await
     .expect("Could not establish connection to database");
 
-    match ans.as_str() {
+    let chat_id = cx.chat_id();
+    let chat_is_known = sqlx::query!("SELECT * FROM chats WHERE id = $1", chat_id)
+        .fetch_one(&pool)
+        .await;
+
+    if let Err(error) = chat_is_known {
+        dbg!("{chat_id} is now added to known chats", chat_id);
+        sqlx::query!(
+            "INSERT INTO chats(id) VALUES ($1) ON CONFLICT DO NOTHING",
+            chat_id
+        )
+        .execute(&pool)
+        .await;
+    }
+
+    let ans = ans.as_str();
+
+    if (get_active_chat_status(&pool, chat_id).await.unwrap() == false)
+        && (ans != "/start" || ans != "/start@BasketballBettingBot")
+    {
+        cx.answer_str("Send /start to begin your season!").await;
+        return next(SetupState);
+    }
+
+    match ans {
+        "/start" | "/start@BasketballBettingBot" => {
+            let chat_id = cx.update.chat_id();
+            change_active_chat_status(&pool, chat_id, true)
+                .await
+                .unwrap();
+            cx.answer_str("Your season begins now!").await;
+            send_polls(&pool, chat_id, &cx.bot).await.unwrap();
+            dbg!("SEASONS STARTS");
+            return next(ReadyState);
+        }
+
         "/rankings" | "/rankings@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
             show_rankings(cx, &pool, chat_id).await;
@@ -141,7 +188,7 @@ pub enum Dialogue {
 
 impl Default for Dialogue {
     fn default() -> Self {
-        Self::Setup(SetupState)
+        Self::Ready(ReadyState)
     }
 }
 
