@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS chats (
 	id BIGINT PRIMARY KEY
 	,game_mode INTEGER REFERENCES game_modes(id) DEFAULT 2
 	,ranking_system INTEGER REFERENCES ranking_systems(id) DEFAULT 1
+	,is_active BOOLEAN
 
 );
 

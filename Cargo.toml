@@ -31,4 +31,5 @@ derive_more = "0.99.9"
 sqlx = {version = "0.4.1", features = ["postgres","time", "chrono","runtime-tokio-rustls", "bigdecimal"] }
 time = "0.2.23"
 timer = "0.2.0"
+anyhow = "1.0.36"
 
