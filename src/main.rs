@@ -1,6 +1,3 @@
-//#[macro_use]
-//extern crate derive_more;
-
 use ini::Ini;
 use lazy_static::lazy_static;
 use sqlx::{postgres::PgPool, Done};
@@ -9,16 +6,8 @@ use std::env;
 use std::thread::{self, sleep};
 use std::time::Duration;
 use teloxide::prelude::*;
-//use thiserror::Error;
-//use timer;
 
-//mod scrape;
 use basketball_betting_bot::{east_coast_date_in_x_days, east_coast_date_today, get_token, Error};
-
-//mod states;
-//mod transitions;
-
-//use states::*
 
 lazy_static! {
     static ref BOT_TOKEN: String = get_token("config.ini");
@@ -28,11 +17,13 @@ lazy_static! {
 // use teloxide::prelude::*;
 //use super::states::*;
 use teloxide_macros::teloxide;
+mod utils;
+use utils::send_polls;
 
 #[teloxide(subtransition)]
 async fn setup(state: SetupState, cx: TransitionIn, ans: String) -> TransitionOut<Dialogue> {
+    dbg!("SETUP");
     let chat_id: i64 = cx.chat_id();
-    println!("{}", &chat_id);
     let pool = PgPool::connect(
         &env::var("DATABASE_URL").expect("Could not find DATABASE_URL environment variable!"),
     )
@@ -44,7 +35,7 @@ async fn setup(state: SetupState, cx: TransitionIn, ans: String) -> TransitionOu
         .await;
 
     if let Err(error) = chat_is_known {
-        println!("{:?}", error);
+        println!("Error {:?}", error);
         sqlx::query!(
             "INSERT INTO chats(id) VALUES ($1) ON CONFLICT DO NOTHING",
             chat_id
@@ -65,17 +56,34 @@ async fn setup(state: SetupState, cx: TransitionIn, ans: String) -> TransitionOu
         .from()
         .expect("Could not get information of the user!")
         .first_name;
+    if get_active_chat_status(&pool, chat_id)
+        .await
+        .unwrap_or(false)
+        == true
+    {
+        return next(ReadyState);
+    }
 
-    cx.answer_str(format!("User: {:?}", chat_member)).await;
+    //cx.answer_str("Once you're ready to start the season, send '/start' into this chat and you can start betting on some games!").await?;
+    match ans.as_str() {
+        "/start" | "/start@BasketballBettingBot" => {
+            let chat_id = cx.update.chat_id();
+            change_active_chat_status(&pool, chat_id, true)
+                .await
+                .unwrap();
+            send_polls(&pool, chat_id, &cx.bot).await.unwrap();
+            dbg!("SEASONS STARTS");
+            return next(ReadyState);
+        }
+        _ => (),
+    }
 
-    cx.answer_str(format!("SETUP: {:?}", admins)).await;
-    println!("{:#?}", admins);
-
-    next(ReadyState)
+    next(SetupState)
 }
 
 #[teloxide(subtransition)]
 async fn ready(state: ReadyState, cx: TransitionIn, ans: String) -> TransitionOut<Dialogue> {
+    dbg!("READY");
     let pool = PgPool::connect(
         &env::var("DATABASE_URL").expect("Could not find DATABASE_URL environment variable!"),
     )
@@ -83,37 +91,40 @@ async fn ready(state: ReadyState, cx: TransitionIn, ans: String) -> TransitionOu
     .expect("Could not establish connection to database");
 
     match ans.as_str() {
-        "/rankings" | "/rankings@NFLBettingBot" => {
+        "/rankings" | "/rankings@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
             show_rankings(cx, &pool, chat_id).await;
         }
         _ => (),
     }
 
-    //let p_id = cx
-    //    .bot
-    //    .send_poll(
-    //        cx.chat_id(),
-    //        "What up",
-    //        vec![String::from("0"), String::from("1")],
-    //    )
-    //    .is_anonymous(false)
-    //    .send()
-    //    .await
-    //    .unwrap()
-    //    .id;
-    //cx.answer_str(format!("{:?}", p_id)).await;
-
-    //let p = cx
-    //    .bot
-    //    .stop_poll(cx.chat_id(), p_id)
-    //    .send()
-    //    .await
-    //    .expect("Could not stopp poll");
-    //let p = cx.update.poll().unwrap().total_voter_count;
-    //println!("{}", p.total_voter_count);
-
     next(ReadyState)
+}
+
+async fn get_active_chat_status(pool: &PgPool, chat_id: i64) -> Result<bool, Error> {
+    Ok(
+        sqlx::query!("SELECT is_active FROM chats WHERE id = $1", chat_id)
+            .fetch_one(pool)
+            .await?
+            .is_active
+            .unwrap(),
+    )
+}
+
+async fn change_active_chat_status(
+    pool: &PgPool,
+    chat_id: i64,
+    new_status: bool,
+) -> Result<(), Error> {
+    sqlx::query!(
+        "UPDATE chats SET is_active = $1 WHERE id = $2",
+        new_status,
+        chat_id
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(())
 }
 
 // states.rs
@@ -151,8 +162,6 @@ async fn main() {
 async fn run() {
     teloxide::enable_logging!();
     log::info!("Starting the bot!");
-    let bot = Bot::new(BOT_TOKEN.to_owned());
-    bot.get_updates();
     let pool = PgPool::connect(
         &env::var("DATABASE_URL").expect("Could not find environment variable DATABASE_URL"),
     )
