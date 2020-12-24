@@ -1,12 +1,19 @@
 use basketball_betting_bot::{get_token, Error};
-use chrono::{TimeZone, Utc};
-use chrono_tz::US::Eastern;
+use std::collections::HashMap;
+mod scrape;
+use chrono::Datelike;
+use scrape::*;
 use sqlx::{postgres::PgPool, types::BigDecimal};
 use std::env;
 use teloxide::prelude::*;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let scraped_months = get_relevant_months()?;
+    for month in scraped_months {
+        scrape_games(month).await?;
+    }
+    scrape_teams().await?;
     let token = get_token("../config.ini");
     let bot = Bot::new(&token);
     let pool = PgPool::connect(
@@ -26,6 +33,46 @@ async fn main() -> anyhow::Result<()> {
     stop_poll(&pool, &bot).await?;
 
     Ok(())
+}
+
+fn get_relevant_months() -> Result<Vec<String>, Error> {
+    let months_ids = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    let months_names = vec![
+        "january",
+        "february",
+        "march",
+        "april",
+        "may",
+        "april",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+    ];
+
+    let months = months_ids
+        .iter()
+        .zip(months_names.into_iter())
+        .collect::<HashMap<_, _>>();
+
+    let current_month = chrono::Utc::now().month();
+    let month_in_9_days = chrono::Utc::now()
+        .checked_add_signed(chrono::Duration::days(9))
+        .unwrap()
+        .month();
+
+    let mut relevant_months = vec![];
+
+    relevant_months.push(months[&current_month].to_string());
+
+    if month_in_9_days != current_month {
+        relevant_months.push(months[&month_in_9_days].to_string());
+    }
+
+    Ok(relevant_months)
 }
 
 fn east_coast_date_today() -> Result<chrono::NaiveDate, Error> {
