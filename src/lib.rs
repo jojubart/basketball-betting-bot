@@ -1,5 +1,4 @@
 //pub mod main;
-pub mod scrape;
 
 #[macro_use]
 extern crate derive_more;

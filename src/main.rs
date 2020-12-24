@@ -15,8 +15,6 @@ use teloxide::prelude::*;
 //mod scrape;
 use basketball_betting_bot::{east_coast_date_in_x_days, east_coast_date_today, get_token, Error};
 
-mod scrape;
-use scrape::*;
 //mod states;
 //mod transitions;
 
@@ -33,8 +31,6 @@ use teloxide_macros::teloxide;
 
 #[teloxide(subtransition)]
 async fn setup(state: SetupState, cx: TransitionIn, ans: String) -> TransitionOut<Dialogue> {
-    // get list of all group administrators / creators
-    // @TODO: check if creator is returned if he's not an admin while other admins are in group
     let chat_id: i64 = cx.chat_id();
     println!("{}", &chat_id);
     let pool = PgPool::connect(
@@ -87,8 +83,7 @@ async fn ready(state: ReadyState, cx: TransitionIn, ans: String) -> TransitionOu
     .expect("Could not establish connection to database");
 
     match ans.as_str() {
-        "/rankings" => {
-            cx.answer_str("RANK").await;
+        "/rankings" | "/rankings@NFLBettingBot" => {
             let chat_id = cx.update.chat_id();
             show_rankings(cx, &pool, chat_id).await;
         }

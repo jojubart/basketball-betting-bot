@@ -2071,6 +2071,8 @@ dependencies = [
  "chrono-tz",
  "log",
  "pretty_env_logger",
+ "reqwest",
+ "scraper",
  "serde",
  "sqlx",
  "teloxide",
