@@ -10,7 +10,7 @@ use teloxide::prelude::*;
 use basketball_betting_bot::{east_coast_date_in_x_days, east_coast_date_today, get_token, Error};
 
 lazy_static! {
-    static ref BOT_TOKEN: String = get_token("config.ini");
+    static ref BOT_TOKEN: String = get_token("../config.ini");
 }
 
 // transitions.rs
