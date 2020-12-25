@@ -23,17 +23,28 @@ async fn main() -> anyhow::Result<()> {
     .await
     .expect("Could not establish connection do database");
 
-    let chats = sqlx::query!("SELECT DISTINCT id FROM chats WHERE is_active = True")
-        .fetch_all(&pool)
-        .await
-        .unwrap_or(vec![]);
+    if active_chats_exist(&pool).await? {
+        let chats = sqlx::query!("SELECT DISTINCT id FROM chats WHERE is_active = True")
+            .fetch_all(&pool)
+            .await
+            .unwrap_or(vec![]);
 
-    for chat_id in chats {
-        send_polls(&pool, chat_id.id, &bot).await?;
+        for chat_id in chats {
+            send_polls(&pool, chat_id.id, &bot).await?;
+        }
+        stop_poll(&pool, &bot).await?;
     }
-    stop_poll(&pool, &bot).await?;
 
     Ok(())
+}
+
+async fn active_chats_exist(pool: &PgPool) -> Result<bool, Error> {
+    Ok(
+        sqlx::query!("SELECT EXISTS(SELECT * FROM chats WHERE is_active = True)")
+            .await
+            .unwrap()
+            .exists,
+    )
 }
 
 fn get_relevant_months() -> Result<Vec<String>, Error> {
