@@ -76,7 +76,9 @@ fn get_relevant_months() -> Result<Vec<String>, Error> {
         .zip(months_names.into_iter())
         .collect::<HashMap<_, _>>();
 
-    let current_month = chrono::Utc::now().month();
+    let current_month = chrono::Utc::now()
+        .checked_sub_signed(chrono::Duration::days(2))
+        .month();
     let month_in_9_days = chrono::Utc::now()
         .checked_add_signed(chrono::Duration::days(9))
         .unwrap()
