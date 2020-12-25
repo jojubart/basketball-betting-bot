@@ -6,6 +6,7 @@ use std::env;
 use std::thread::{self, sleep};
 use std::time::Duration;
 use teloxide::prelude::*;
+use teloxide::requests::RequestWithFile;
 
 use basketball_betting_bot::{east_coast_date_in_x_days, east_coast_date_today, get_token, Error};
 
@@ -79,6 +80,10 @@ async fn setup(state: SetupState, cx: TransitionIn, ans: String) -> TransitionOu
             change_active_chat_status(&pool, chat_id, true)
                 .await
                 .unwrap();
+            cx.answer_str(r#"BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. The one who gets the most games right in a week gets one point.
+You play against the other members of your group and the winner is the one who wins the most weeks.
+Once everyone who wants to participate is in this group, send /start to begin!"#).await;
+
             cx.answer_str("Your season begins now!").await;
             send_polls(&pool, chat_id, &cx.bot).await.unwrap();
             dbg!("SEASONS STARTS");
@@ -151,10 +156,14 @@ Once everyone who wants to participate is in this group, send /start to begin!"#
         }
         "/sage" | "sage@BasketballBettingBot" => {
             let photo = teloxide::types::InputFile::Url(
-                "https://i0.wp.com/media0.giphy.com/media/l2YWu0FrVJzn6OR44/giphy.gif?zoom=2"
-                    .to_string(),
+                "https://media.giphy.com/media/zLVTQRSiCm2a8kljMq/giphy.gif".to_string(),
             );
+            //let sage_raw = std::path::PathBuf::from("sage.GIF");
+            //let sage = teloxide::types::InputFile::File(sage_raw);
 
+            //let gif = cx.answer_animation(sage).caption("K").send().await;
+
+            let gif = cx.answer_animation(photo).send().await;
             //let gif = cx.bot.send_photo(chat_id, photo).send();
             //cx.answer_photo(photo)
             //    .caption("KYRIE")

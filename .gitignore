@@ -1,3 +1,5 @@
 /target
 *.ini
 scheduled_tasks/target/
+*.DS_Store
+
