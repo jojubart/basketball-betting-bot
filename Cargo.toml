@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 #teloxide = {git = "https://github.com/teloxide/teloxide", branch="dev",features = ["sqlite-storage", "bincode-serializer", "redis-storage"]}
-teloxide = {version="0.3.3", features = ["redis-storage", "bincode-serializer"]}
+teloxide = {version="0.3.3"}
 teloxide-macros = "0.3"
 rust-ini = "0.16.0"
 

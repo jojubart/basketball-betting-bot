@@ -103,11 +103,14 @@ async fn ready(state: ReadyState, cx: TransitionIn, ans: String) -> TransitionOu
     .expect("Could not establish connection to database");
 
     let chat_id = cx.chat_id();
-    let chat_is_known = sqlx::query!("SELECT * FROM chats WHERE id = $1", chat_id)
+    let chat_is_known = sqlx::query!("SELECT EXISTS(SELECT * FROM chats WHERE id = $1)", chat_id)
         .fetch_one(&pool)
-        .await;
+        .await
+        .unwrap()
+        .exists
+        .unwrap();
 
-    if let Err(error) = chat_is_known {
+    if !chat_is_known {
         dbg!("{chat_id} is now added to known chats", chat_id);
         sqlx::query!(
             "INSERT INTO chats(id) VALUES ($1) ON CONFLICT DO NOTHING",
@@ -155,7 +158,7 @@ async fn get_active_chat_status(pool: &PgPool, chat_id: i64) -> Result<bool, Err
             .fetch_one(pool)
             .await?
             .is_active
-            .unwrap(),
+            .unwrap_or(false),
     )
 }
 
