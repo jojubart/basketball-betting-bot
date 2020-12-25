@@ -123,7 +123,7 @@ async fn ready(state: ReadyState, cx: TransitionIn, ans: String) -> TransitionOu
     let ans = ans.as_str();
 
     if (get_active_chat_status(&pool, chat_id).await.unwrap() == false)
-        && (ans != "/start" || ans != "/start@BasketballBettingBot")
+        && (ans != "/start" && ans != "/start@BasketballBettingBot")
     {
         cx.answer_str("Send /start to begin your season!").await;
         return next(SetupState);

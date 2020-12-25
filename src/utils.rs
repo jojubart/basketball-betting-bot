@@ -79,6 +79,7 @@ pub async fn send_polls(pool: &PgPool, chat_id: i64, bot: &teloxide::Bot) -> any
         .await?;
 
         for game in &games {
+            dbg!(game);
             send_game(&pool, game.id, chat_id, game, &bot, bet_week_id).await?;
         }
 
@@ -345,6 +346,7 @@ async fn get_games(
     .await?;
 
     let mut games = Vec::new();
+    dbg!(&games_raw);
     for record in games_raw {
         dbg!(&record);
         let game: Game = Game {
