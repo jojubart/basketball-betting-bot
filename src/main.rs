@@ -135,6 +135,9 @@ async fn ready(state: ReadyState, cx: TransitionIn, ans: String) -> TransitionOu
             change_active_chat_status(&pool, chat_id, true)
                 .await
                 .unwrap();
+            cx.answer_str(r#"BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. The one who gets the most games right in a week gets one point.
+You play against the other members of your group and the winner is the one who wins the most weeks.
+Once everyone who wants to participate is in this group, send /start to begin!"#).await;
             cx.answer_str("Your season begins now!").await;
             send_polls(&pool, chat_id, &cx.bot).await.unwrap();
             dbg!("SEASONS STARTS");
@@ -145,6 +148,28 @@ async fn ready(state: ReadyState, cx: TransitionIn, ans: String) -> TransitionOu
             let chat_id = cx.update.chat_id();
             //show_rankings(cx, &pool, chat_id).await;
             show_week_rankings(cx, &pool, chat_id).await;
+        }
+        "/sage" | "sage@BasketballBettingBot" => {
+            let photo = teloxide::types::InputFile::Url(
+                "https://i0.wp.com/media0.giphy.com/media/l2YWu0FrVJzn6OR44/giphy.gif?zoom=2"
+                    .to_string(),
+            );
+
+            //let gif = cx.bot.send_photo(chat_id, photo).send();
+            //cx.answer_photo(photo)
+            //    .caption("KYRIE")
+            //    .parse_mode(teloxide::types::ParseMode::HTML)
+            //    .disable_notification(true)
+            //    .send()
+            //    .await;
+        }
+        "/help" | "/help@BasketballBettingBot" => {
+            cx.answer_str(r#"BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. The one who gets the most games right in a week gets one point.
+You play against the other members of your group and the winner is the one who wins the most weeks.
+Once everyone who wants to participate is in this group, send /start to begin if you haven't done so already!
+
+/rankings to see who's the GOAT bettor this week.
+/sage to cleanse the energy of this chat"#).await;
         }
         _ => (),
     }
