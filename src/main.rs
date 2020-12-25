@@ -149,7 +149,7 @@ Once everyone who wants to participate is in this group, send /start to begin!"#
             return next(ReadyState);
         }
 
-        "/rankings" | "/rankings@BasketballBettingBot" => {
+        "/standings" | "/standings@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
             //show_rankings(cx, &pool, chat_id).await;
             show_week_rankings(cx, &pool, chat_id).await;
@@ -177,7 +177,7 @@ Once everyone who wants to participate is in this group, send /start to begin!"#
 You play against the other members of your group and the winner is the one who wins the most weeks.
 Once everyone who wants to participate is in this group, send /start to begin if you haven't done so already!
 
-/rankings to see who's the GOAT bettor this week.
+/standings to see who's the GOAT bettor this week.
 /sage to cleanse the energy of this chat"#).await;
         }
         _ => (),
@@ -492,7 +492,7 @@ async fn show_rankings(
     //    .into_iter()
     //    .map(|record| format!("{}\n", record.first_name.unwrap().as_str()))
     //    .collect::<String>();
-    let mut rankings = String::from("");
+    let mut rankings = String::from("Rank | Name | Correct Bets\n--- | --- | ---");
 
     for record in ranking_query {
         rankings.push_str(
@@ -517,6 +517,11 @@ async fn show_rankings(
         );
     }
 
+    dbg!(&rankings);
+    cx.answer(&rankings)
+        //.parse_mode(teloxide::types::ParseMode::MarkdownV2)
+        .send()
+        .await;
     cx.answer_str(rankings).await;
     Ok(())
 }
@@ -528,7 +533,7 @@ async fn show_week_rankings(
 ) -> Result<(), Error> {
     let ranking_query = sqlx::query!(
         r#"
-        SELECT first_name, last_name, username, correct_bets_week, week_number FROM weekly_rankings
+        SELECT first_name, last_name, username, correct_bets_week, week_number, rank_number FROM weekly_rankings
         WHERE
         chat_id = $1
         AND week_number = (SELECT MAX(week_number) FROM weekly_rankings WHERE chat_id = $1)
@@ -545,31 +550,35 @@ async fn show_week_rankings(
     //    .into_iter()
     //    .map(|record| format!("{}\n", record.first_name.unwrap().as_str()))
     //    .collect::<String>();
-    let mut rankings = String::from("");
+    let mut rankings = String::from(
+        format!("Week {week_number}\n\nRank |          Name          |    Points\n---  ---  --- --- --- --- --- --- ---\n",week_number = &ranking_query[0].week_number.unwrap()
+    ));
 
+    dbg!(&ranking_query);
     for record in ranking_query {
         rankings.push_str(
             &format!(
-                "{rank}. {first_name} {last_name} {username}\ncorrect bets this week: {correct_bets_week}\n",
-                rank = {
-                    rank += 1;
-                    rank
-                },
+                "{rank}.       | \t\t\t\t\t {first_name} \t\t\t\t\t | \t\t       {correct_bets_week}\n",
+                rank = record.rank_number.unwrap(),
                 first_name = record.first_name.unwrap(),
-                last_name = record.last_name.unwrap(),
-                username = {
-                    let username = record.username.unwrap();
-                    match username.as_str() {
-                        "" => format!(""),
-                        _ => format!("@{}", username),
-                    }
-                },
+                //     last_name = record.last_name.unwrap(),
+                //     username = {
+                //         let username = record.username.unwrap();
+                //         match username.as_str() {
+                //             "" => format!(""),
+                //             _ => format!("@{}", username),
+                //         }
+                //     },
                 correct_bets_week = record.correct_bets_week.unwrap()
             )
             .as_str(),
         );
     }
+    cx.answer(&rankings)
+        //.parse_mode(teloxide::types::ParseMode::MarkdownV2)
+        .send()
+        .await;
 
-    cx.answer_str(rankings).await;
+    //cx.answer_str(rankings).await;
     Ok(())
 }

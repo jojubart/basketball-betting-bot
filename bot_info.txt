@@ -1,6 +1,7 @@
 [commands]
 start - Start your season! (wait until everyone who wants to participate was added to this group)
-rankings - Shows rankings for the whole season
+standings - Shows rankings for current week
+sage - Cleanse the chat from toxic energy
 
 [description]
 BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. The one who gets the most games right in a week gets one point.
