@@ -2,7 +2,7 @@ use basketball_betting_bot::{get_token, Error};
 use std::collections::HashMap;
 mod scrape;
 use basketball_betting_bot::utils::*;
-use chrono::Datelike;
+use chrono::{Datelike, Timelike};
 use scrape::*;
 use sqlx::{postgres::PgPool, types::BigDecimal};
 use std::env;
@@ -11,8 +11,10 @@ use teloxide::prelude::*;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let scraped_months = get_relevant_months()?;
+    dbg!(&scraped_months);
     scrape_teams().await?;
     for month in scraped_months {
+        dbg!(&month);
         scrape_games(month).await?;
     }
     let token = get_token("../config.ini");
@@ -29,8 +31,11 @@ async fn main() -> anyhow::Result<()> {
             .await
             .unwrap_or(vec![]);
 
-        for chat_id in chats {
-            send_polls(&pool, chat_id.id, &bot).await?;
+        // don't send polls in the middle of the night in USA and Europe
+        if chrono::Utc::now().hour() >= 19 {
+            for chat_id in chats {
+                send_polls(&pool, chat_id.id, &bot).await?;
+            }
         }
         stop_poll(&pool, &bot).await?;
     }
