@@ -11,10 +11,10 @@ use teloxide::prelude::*;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let scraped_months = get_relevant_months()?;
+    scrape_teams().await?;
     for month in scraped_months {
         scrape_games(month).await?;
     }
-    scrape_teams().await?;
     let token = get_token("../config.ini");
     let bot = Bot::new(&token);
     let pool = PgPool::connect(

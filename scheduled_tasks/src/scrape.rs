@@ -163,8 +163,9 @@ async fn get_team_id(pool: &PgPool, team_name: String) -> Result<i32, Error> {
             SELECT id FROM teams WHERE name = $1"#,
         team_name
     )
-    .fetch_one(pool)
+    .fetch_optional(pool)
     .await?
+    .unwrap()
     .id)
 }
 #[derive(Debug, Clone)]
