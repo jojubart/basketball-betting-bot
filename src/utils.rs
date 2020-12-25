@@ -363,7 +363,14 @@ async fn get_games(
     Ok(games)
 }
 
+async fn polls_exist(pool: &PgPool) -> Result<bool Error> {
+    Ok(sqlx::query!("SELECT EXISTS(SELECT * FROM polls)")
+        .fetch_one(pool)
+        .await?
+        .exists)
+}
 pub async fn stop_poll(pool: &PgPool, bot: &teloxide::Bot) -> Result<(), Error> {
+    if !polls_exist(pool).await? {return Ok(())}
     let polls_to_close = sqlx::query!(
         r#"
         SELECT id, local_id, chat_id FROM polls
