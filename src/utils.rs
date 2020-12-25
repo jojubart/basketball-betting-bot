@@ -367,7 +367,8 @@ async fn polls_exist(pool: &PgPool) -> Result<bool, Error> {
     Ok(sqlx::query!("SELECT EXISTS(SELECT * FROM polls)")
         .fetch_one(pool)
         .await?
-        .exists)
+        .exists
+        .unwrap())
 }
 pub async fn stop_poll(pool: &PgPool, bot: &teloxide::Bot) -> Result<(), Error> {
     if !polls_exist(pool).await? {
