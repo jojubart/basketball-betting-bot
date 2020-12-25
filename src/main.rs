@@ -154,7 +154,7 @@ Once everyone who wants to participate is in this group, send /start to begin!"#
             //show_rankings(cx, &pool, chat_id).await;
             show_week_rankings(cx, &pool, chat_id).await;
         }
-        "/sage" | "sage@BasketballBettingBot" => {
+        "/sage" | "/sage@BasketballBettingBot" => {
             let photo = teloxide::types::InputFile::Url(
                 "https://media.giphy.com/media/zLVTQRSiCm2a8kljMq/giphy.gif".to_string(),
             );
