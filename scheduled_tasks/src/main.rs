@@ -41,9 +41,11 @@ async fn main() -> anyhow::Result<()> {
 async fn active_chats_exist(pool: &PgPool) -> Result<bool, Error> {
     Ok(
         sqlx::query!("SELECT EXISTS(SELECT * FROM chats WHERE is_active = True)")
+            .fetch_one(pool)
             .await
             .unwrap()
-            .exists,
+            .exists
+            .unwrap(),
     )
 }
 
