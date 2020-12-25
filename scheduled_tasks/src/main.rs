@@ -57,7 +57,6 @@ fn get_relevant_months() -> Result<Vec<String>, Error> {
         "march",
         "april",
         "may",
-        "april",
         "june",
         "july",
         "august",
