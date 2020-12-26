@@ -1,14 +1,11 @@
-use ini::Ini;
 use lazy_static::lazy_static;
-use sqlx::{postgres::PgPool, Done};
+use sqlx::postgres::PgPool;
 use std::convert::Infallible;
 use std::env;
-use std::thread::{self, sleep};
-use std::time::Duration;
 use teloxide::prelude::*;
 use teloxide::requests::RequestWithFile;
 
-use basketball_betting_bot::{east_coast_date_in_x_days, east_coast_date_today, get_token, Error};
+use basketball_betting_bot::{get_token, Error};
 
 lazy_static! {
     static ref BOT_TOKEN: String = get_token("../config.ini");
@@ -22,9 +19,8 @@ mod utils;
 use utils::send_polls;
 
 #[teloxide(subtransition)]
-async fn setup(state: SetupState, cx: TransitionIn, ans: String) -> TransitionOut<Dialogue> {
+async fn setup(_state: SetupState, cx: TransitionIn, ans: String) -> TransitionOut<Dialogue> {
     dbg!("SETUP");
-    let chat_id: i64 = cx.chat_id();
     let pool = PgPool::connect(
         &env::var("DATABASE_URL").expect("Could not find DATABASE_URL environment variable!"),
     )
@@ -153,6 +149,10 @@ Once everyone who wants to participate is in this group, send /start to begin!"#
             let chat_id = cx.update.chat_id();
             //show_rankings(cx, &pool, chat_id).await;
             show_week_rankings(cx, &pool, chat_id).await;
+        }
+        "/full_standings" | "/full_standings@BasketballBettingBot" => {
+            let chat_id = cx.update.chat_id();
+            show_complete_rankings(cx, &pool, chat_id).await;
         }
         "/sage" | "/sage@BasketballBettingBot" => {
             let photo = teloxide::types::InputFile::Url(
@@ -410,7 +410,7 @@ async fn bet_to_team_id(pool: &PgPool, bet: i32, game_id: i32) -> Result<i32, Er
 async fn get_chat_id_game_id_from_poll(
     pool: &PgPool,
     poll_id: String,
-) -> Result<((i64, i32)), Error> {
+) -> Result<(i64, i32), Error> {
     dbg!(&poll_id);
     let row = sqlx::query!(
         r#"
@@ -473,57 +473,120 @@ async fn add_user(
     Ok(())
 }
 
-async fn show_rankings(
-    cx: UpdateWithCx<Message>,
-    pool: &PgPool,
-    chat_id: i64,
-) -> Result<(), Error> {
+//async fn show_rankings(
+//    cx: UpdateWithCx<Message>,
+//    pool: &PgPool,
+//    chat_id: i64,
+//) -> Result<(), Error> {
+//    let ranking_query = sqlx::query!(
+//        r#"
+//        SELECT first_name, last_name, username, points FROM rankings WHERE chat_id = $1 ORDER BY points DESC;
+//        "#,
+//        chat_id
+//    )
+//    .fetch_all(pool)
+//    .await?;
+//
+//    let mut rank: i32 = 0;
+//    //let mut rankings = ranking_query
+//    //    .into_iter()
+//    //    .map(|record| format!("{}\n", record.first_name.unwrap().as_str()))
+//    //    .collect::<String>();
+//    let mut rankings = String::from("Rank | Name | Correct Bets\n--- | --- | ---");
+//
+//    for record in ranking_query {
+//        rankings.push_str(
+//            &format!(
+//                "{rank}. {first_name} {last_name} {username}\nPoints: {points}\n",
+//                rank = {
+//                    rank += 1;
+//                    rank
+//                },
+//                first_name = record.first_name.unwrap(),
+//                last_name = record.last_name.unwrap(),
+//                username = {
+//                    let username = record.username.unwrap();
+//                    match username.as_str() {
+//                        "" => format!(""),
+//                        _ => format!("@{}", username),
+//                    }
+//                },
+//                points = record.points.unwrap()
+//            )
+//            .as_str(),
+//        );
+//    }
+//
+//    dbg!(&rankings);
+//    cx.answer(&rankings)
+//        //.parse_mode(teloxide::types::ParseMode::MarkdownV2)
+//        .send()
+//        .await;
+//    cx.answer_str(rankings).await;
+//    Ok(())
+//}
+async fn show_complete_rankings(cx: UpdateWithCx<Message>, pool: &PgPool, chat_id: i64) -> Result<(), Error> {
     let ranking_query = sqlx::query!(
         r#"
-        SELECT first_name, last_name, username, points FROM rankings WHERE chat_id = $1 ORDER BY points DESC;
+        SELECT 
+         first_name
+         ,last_name
+         ,username
+         ,chat_id
+         ,SUM(CASE WHEN rank_number = 1 THEN 1 ELSE 0 END)  as weeks_won
+         ,RANK() OVER (partition by chat_id ORDER BY SUM(CASE WHEN rank_number = 1 THEN 1 ELSE 0 END) DESC )
+        FROM weekly_rankings WHERE chat_id = $1 
+    GROUP BY
+    first_name
+    ,last_name
+    ,username
+    ,chat_id
+    ORDER BY weeks_won DESC;
         "#,
         chat_id
-    )
-    .fetch_all(pool)
-    .await?;
 
-    let mut rank: i32 = 0;
-    //let mut rankings = ranking_query
-    //    .into_iter()
-    //    .map(|record| format!("{}\n", record.first_name.unwrap().as_str()))
-    //    .collect::<String>();
-    let mut rankings = String::from("Rank | Name | Correct Bets\n--- | --- | ---");
+
+    ).fetch_all(pool).await?;
+
+    let mut rankings = 
+        String::from("Standings (includes the ongoing week)\n\nRank |          Name          |    Weeks Won\n---  ---  --- --- --- --- --- --- ---\n",
+            );
 
     for record in ranking_query {
+        let first_name = record.first_name.unwrap();
+        let mut spacing = String::from("");
+
+        if let len @ 0..=13 = first_name.len() {
+            for _ in 0..(13 - len) {
+                spacing.push('\t')
+            }
+        }
         rankings.push_str(
             &format!(
-                "{rank}. {first_name} {last_name} {username}\nPoints: {points}\n",
-                rank = {
-                    rank += 1;
-                    rank
-                },
-                first_name = record.first_name.unwrap(),
-                last_name = record.last_name.unwrap(),
-                username = {
-                    let username = record.username.unwrap();
-                    match username.as_str() {
-                        "" => format!(""),
-                        _ => format!("@{}", username),
-                    }
-                },
-                points = record.points.unwrap()
+                "{rank}.       | {spacing} {first_name} {spacing} | \t\t\t\t\t\t{weeks_won}\n",
+                rank = record.rank.unwrap(),
+                first_name = first_name,
+                spacing = spacing,
+                //     last_name = record.last_name.unwrap(),
+                //     username = {
+                //         let username = record.username.unwrap();
+                //         match username.as_str() {
+                //             "" => format!(""),
+                //             _ => format!("@{}", username),
+                //         }
+                //     },
+                weeks_won = record.weeks_won.unwrap()
             )
             .as_str(),
         );
     }
 
-    dbg!(&rankings);
-    cx.answer(&rankings)
-        //.parse_mode(teloxide::types::ParseMode::MarkdownV2)
-        .send()
-        .await;
-    cx.answer_str(rankings).await;
-    Ok(())
+    cx.answer(&rankings).send().await?;
+
+   Ok(())
+
+
+
 }
 
 async fn show_week_rankings(
@@ -545,22 +608,36 @@ async fn show_week_rankings(
     .fetch_all(pool)
     .await?;
 
-    let mut rank: i32 = 0;
-    //let mut rankings = ranking_query
-    //    .into_iter()
-    //    .map(|record| format!("{}\n", record.first_name.unwrap().as_str()))
-    //    .collect::<String>();
-    let mut rankings = String::from(
-        format!("Week {week_number}\n\nRank |          Name          |    Points\n---  ---  --- --- --- --- --- --- ---\n",week_number = &ranking_query[0].week_number.unwrap()
-    ));
+
+    let week_number;
+    let week_number_raw = &ranking_query.get(0);
+    if week_number_raw.is_none() {
+        cx.answer_str("Make sure to answer at least one poll before showing the standings!").await?;
+        return Ok(())
+    } else {
+         week_number = week_number_raw.unwrap().week_number.unwrap();
+    }
+    let mut rankings = 
+        format!("Week {week_number}\n\nRank |          Name          |    Points\n---  ---  --- --- --- --- --- --- ---\n",
+            week_number = 
+            week_number);
 
     dbg!(&ranking_query);
     for record in ranking_query {
+        let first_name = record.first_name.unwrap();
+        let mut spacing = String::from("");
+
+        if let len @ 0..=13 = first_name.len() {
+            for _ in 0..(13 - len) {
+                spacing.push('\t')
+            }
+        }
         rankings.push_str(
             &format!(
-                "{rank}.       | \t\t\t\t\t {first_name} \t\t\t\t\t | \t\t       {correct_bets_week}\n",
+                "{rank}.       | {spacing} {first_name} {spacing} | \t\t\t\t\t\t{correct_bets_week}\n",
                 rank = record.rank_number.unwrap(),
-                first_name = record.first_name.unwrap(),
+                first_name = first_name,
+                spacing = spacing,
                 //     last_name = record.last_name.unwrap(),
                 //     username = {
                 //         let username = record.username.unwrap();
@@ -574,11 +651,8 @@ async fn show_week_rankings(
             .as_str(),
         );
     }
-    cx.answer(&rankings)
-        //.parse_mode(teloxide::types::ParseMode::MarkdownV2)
-        .send()
-        .await;
 
-    //cx.answer_str(rankings).await;
+    cx.answer(&rankings).send().await?;
+
     Ok(())
 }

@@ -1,6 +1,7 @@
 [commands]
 start - Start your season! (wait until everyone who wants to participate was added to this group)
-standings - Shows rankings for current week
+standings - Shows ranking for current week
+full_standings - Shows ranking for the whole season
 sage - Cleanse the chat from toxic energy
 
 [description]
