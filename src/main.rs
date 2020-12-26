@@ -549,7 +549,7 @@ async fn show_complete_rankings(cx: UpdateWithCx<Message>, pool: &PgPool, chat_i
     ).fetch_all(pool).await?;
 
     let mut rankings = 
-        String::from("Standings (includes the ongoing week)\n\nRank |          Name          |    Weeks Won\n---  ---  --- --- --- --- --- --- ---\n",
+        String::from("Standings (include the ongoing week)\n\nRank |          Name          |    Weeks Won\n--- --- --- --- --- --- --- --- --- --- ---\n",
             );
 
     for record in ranking_query {
@@ -563,7 +563,7 @@ async fn show_complete_rankings(cx: UpdateWithCx<Message>, pool: &PgPool, chat_i
         }
         rankings.push_str(
             &format!(
-                "{rank}.       | {spacing} {first_name} {spacing} | \t\t\t\t\t\t{weeks_won}\n",
+                "    {rank}    | {spacing} {first_name} {spacing} | \t\t\t\t\t\t\t\t\t{weeks_won}\n",
                 rank = record.rank.unwrap(),
                 first_name = first_name,
                 spacing = spacing,
@@ -618,7 +618,7 @@ async fn show_week_rankings(
          week_number = week_number_raw.unwrap().week_number.unwrap();
     }
     let mut rankings = 
-        format!("Week {week_number}\n\nRank |          Name          |    Points\n---  ---  --- --- --- --- --- --- ---\n",
+        format!("Week {week_number}\nYou get one point for every correct bet\n\nRank |          Name          |    Points\n--- --- --- --- --- --- --- --- --- --\n",
             week_number = 
             week_number);
 
@@ -634,7 +634,7 @@ async fn show_week_rankings(
         }
         rankings.push_str(
             &format!(
-                "{rank}.       | {spacing} {first_name} {spacing} | \t\t\t\t\t\t{correct_bets_week}\n",
+                "    {rank}    | {spacing} {first_name} {spacing} | \t\t\t\t\t\t{correct_bets_week}\n",
                 rank = record.rank_number.unwrap(),
                 first_name = first_name,
                 spacing = spacing,
