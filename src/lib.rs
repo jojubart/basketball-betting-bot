@@ -1,4 +1,5 @@
 pub mod utils;
+use sqlx::postgres::PgPool;
 
 #[macro_use]
 extern crate derive_more;
@@ -65,4 +66,14 @@ pub fn east_coast_date_in_x_days(days: i64, past: bool) -> Result<chrono::NaiveD
         &east_coast_delayed_format,
         "%Y-%m-%d",
     )?)
+}
+
+pub async fn get_active_chat_status(pool: &PgPool, chat_id: i64) -> Result<bool, Error> {
+    Ok(
+        sqlx::query!("SELECT is_active FROM chats WHERE id = $1", chat_id)
+            .fetch_one(pool)
+            .await?
+            .is_active
+            .unwrap_or(false),
+    )
 }

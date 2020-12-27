@@ -78,6 +78,7 @@ fn get_relevant_months() -> Result<Vec<String>, Error> {
 
     let current_month = chrono::Utc::now()
         .checked_sub_signed(chrono::Duration::days(2))
+        .unwrap()
         .month();
     let month_in_9_days = chrono::Utc::now()
         .checked_add_signed(chrono::Duration::days(9))

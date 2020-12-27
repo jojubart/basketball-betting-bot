@@ -13,7 +13,8 @@ pub async fn scrape_teams() -> Result<(), Error> {
     let pool = PgPool::connect(&env::var("DATABASE_URL")?).await?;
     // in the new year we can use the standings of the actual season, when enough games are played,
     // such thtat the srs metric has significant meaning
-    let year = chrono::Utc::now().year();
+    //let year = chrono::Utc::now().year();
+    let year = 2021;
     let link = format!(
         "https://www.basketball-reference.com/leagues/NBA_{year}.html",
         year = year

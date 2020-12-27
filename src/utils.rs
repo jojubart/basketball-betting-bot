@@ -1,4 +1,4 @@
-use crate::Error;
+use crate::{get_active_chat_status, Error};
 use sqlx::{postgres::PgPool, types::BigDecimal};
 use teloxide::prelude::*;
 
@@ -386,9 +386,11 @@ pub async fn stop_poll(pool: &PgPool, bot: &teloxide::Bot) -> Result<(), Error> 
     .await?;
 
     for poll in polls_to_close {
-        bot.stop_poll(poll.chat_id.unwrap(), poll.local_id.unwrap())
-            .send()
-            .await?;
+        let chat_id = poll.chat_id.unwrap_or(-1);
+        match bot.stop_poll(chat_id, poll.local_id.unwrap()).send().await {
+            Ok(_) => (),
+            Err(_) => continue,
+        }
 
         sqlx::query!(
             r#"

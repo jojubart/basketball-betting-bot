@@ -5,7 +5,7 @@ use std::env;
 use teloxide::prelude::*;
 use teloxide::requests::RequestWithFile;
 
-use basketball_betting_bot::{get_token, Error};
+use basketball_betting_bot::{get_token, Error, get_active_chat_status};
 
 lazy_static! {
     static ref BOT_TOKEN: String = get_token("../config.ini");
@@ -184,15 +184,6 @@ Once everyone who wants to participate is in this group, send /start to begin if
     next(ReadyState)
 }
 
-async fn get_active_chat_status(pool: &PgPool, chat_id: i64) -> Result<bool, Error> {
-    Ok(
-        sqlx::query!("SELECT is_active FROM chats WHERE id = $1", chat_id)
-            .fetch_one(pool)
-            .await?
-            .is_active
-            .unwrap_or(false),
-    )
-}
 
 async fn change_active_chat_status(
     pool: &PgPool,
