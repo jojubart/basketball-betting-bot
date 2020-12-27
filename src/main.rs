@@ -5,7 +5,8 @@ use std::env;
 use teloxide::prelude::*;
 use teloxide::requests::RequestWithFile;
 
-use basketball_betting_bot::{get_token, Error, get_active_chat_status};
+use basketball_betting_bot::{get_token, Error, get_active_chat_status };
+use utils::{number_of_finished_games_week};
 
 lazy_static! {
     static ref BOT_TOKEN: String = get_token("../config.ini");
@@ -601,6 +602,8 @@ async fn show_week_rankings(
     .fetch_all(pool)
     .await?;
 
+    let finished_games = number_of_finished_games_week(pool, chat_id).await?;
+
 
     let week_number;
     let week_number_raw = &ranking_query.get(0);
@@ -627,10 +630,11 @@ async fn show_week_rankings(
         }
         rankings.push_str(
             &format!(
-                "    {rank}    | {spacing} {first_name} {spacing} | \t\t\t\t\t\t{correct_bets_week}\n",
+                "    {rank}    | {spacing} {first_name} {spacing} | \t\t\t\t{correct_bets_week}/{finished_games}\n",
                 rank = record.rank_number.unwrap_or(-1),
                 first_name = first_name,
                 spacing = spacing,
+                finished_games = finished_games,
                 //     last_name = record.last_name.unwrap(),
                 //     username = {
                 //         let username = record.username.unwrap();

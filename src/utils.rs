@@ -405,6 +405,32 @@ pub async fn stop_poll(pool: &PgPool, bot: &teloxide::Bot) -> Result<(), Error> 
     Ok(())
 }
 
+pub async fn number_of_finished_games_week(pool: &PgPool, chat_id: i64) -> Result<u8, Error> {
+    let row = sqlx::query!(
+        r#"
+        SELECT 
+            count(*) AS finished_games
+        FROM
+            polls JOIN games ON games.id = polls.game_id
+            JOIN bet_weeks ON bet_weeks.id = polls.bet_week_id
+        WHERE
+            games.date_time <= NOW() + interval '6 hours' 
+            AND bet_weeks.end_date > NOW() 
+            AND bet_weeks.start_date < NOW()
+            AND polls.chat_id = $1;
+        "#,
+        chat_id
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    if let Some(row_result) = row {
+        return Ok(row_result.finished_games.unwrap_or(-1) as u8);
+    } else {
+        return Ok(0);
+    }
+}
+
 #[derive(Debug)]
 pub struct Game {
     id: i32,
