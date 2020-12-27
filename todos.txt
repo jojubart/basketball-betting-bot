@@ -1,0 +1,2 @@
+- use include_str!() for config.ini file (is it possible to still use as .ini?)
+- 

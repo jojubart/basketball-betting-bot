@@ -1,8 +1,5 @@
-use crate::{get_token, Error};
-use chrono::Datelike;
+use crate::Error;
 use sqlx::{postgres::PgPool, types::BigDecimal};
-use std::collections::HashMap;
-use std::env;
 use teloxide::prelude::*;
 
 fn east_coast_date_today() -> Result<chrono::NaiveDate, Error> {
@@ -113,7 +110,7 @@ async fn insert_bet_week(
     Ok(row.id)
 }
 
-async fn update_bet_week(pool: &PgPool, bet_week_id: i32) -> anyhow::Result<()> {
+async fn _update_bet_week(pool: &PgPool, bet_week_id: i32) -> anyhow::Result<()> {
     dbg!("update_bet_week was called");
     sqlx::query!(
         r#"
@@ -125,7 +122,7 @@ async fn update_bet_week(pool: &PgPool, bet_week_id: i32) -> anyhow::Result<()> 
         bet_week_id
     )
     .execute(pool)
-    .await;
+    .await?;
     Ok(())
 }
 
@@ -366,11 +363,11 @@ async fn get_games(
 }
 
 async fn polls_exist(pool: &PgPool) -> Result<bool, Error> {
-    Ok(sqlx::query!("SELECT EXISTS(SELECT * FROM polls)")
+    sqlx::query!("SELECT EXISTS(SELECT * FROM polls)")
         .fetch_one(pool)
         .await?
         .exists
-        .unwrap())
+        .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
 }
 pub async fn stop_poll(pool: &PgPool, bot: &teloxide::Bot) -> Result<(), Error> {
     if !polls_exist(pool).await? {
@@ -389,8 +386,7 @@ pub async fn stop_poll(pool: &PgPool, bot: &teloxide::Bot) -> Result<(), Error> 
     .await?;
 
     for poll in polls_to_close {
-        let sp = bot
-            .stop_poll(poll.chat_id.unwrap(), poll.local_id.unwrap())
+        bot.stop_poll(poll.chat_id.unwrap(), poll.local_id.unwrap())
             .send()
             .await?;
 
@@ -402,7 +398,6 @@ pub async fn stop_poll(pool: &PgPool, bot: &teloxide::Bot) -> Result<(), Error> 
         )
         .execute(pool)
         .await?;
-        dbg!(poll);
     }
 
     Ok(())

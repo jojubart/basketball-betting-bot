@@ -18,84 +18,84 @@ use teloxide_macros::teloxide;
 mod utils;
 use utils::send_polls;
 
+//#[teloxide(subtransition)]
+//async fn setup(_state: SetupState, cx: TransitionIn, ans: String) -> TransitionOut<Dialogue> {
+//    dbg!("SETUP");
+//    let pool = PgPool::connect(
+//        &env::var("DATABASE_URL").expect("Could not find DATABASE_URL environment variable!"),
+//    )
+//    .await
+//    .expect("Could not establish connection to database");
+//
+//    //let chat_is_known = sqlx::query!("SELECT * FROM chats WHERE id = $1", chat_id)
+//    //    .fetch_one(&pool)
+//    //    .await;
+//
+//    //if let Err(error) = chat_is_known {
+//    //    println!("Error {:?}", error);
+//    //    sqlx::query!(
+//    //        "INSERT INTO chats(id) VALUES ($1) ON CONFLICT DO NOTHING",
+//    //        chat_id
+//    //    )
+//    //    .execute(&pool)
+//    //    .await;
+//    //}
+//
+//    let admins = cx
+//        .bot
+//        .get_chat_administrators(cx.chat_id())
+//        .send()
+//        .await
+//        .unwrap_or(vec![]); // no admin present in non-group chats
+//
+//    let chat_member = &cx
+//        .update
+//        .from()
+//        .expect("Could not get information of the user!")
+//        .first_name;
+//    //if get_active_chat_status(&pool, chat_id)
+//    //    .await
+//    //    .unwrap_or(false)
+//    //    == true
+//    //{
+//    //    match ans.as_str() {
+//    //        "/rankings" | "/rankings@BasketballBettingBot" => {
+//    //            let chat_id = cx.update.chat_id();
+//    //            dbg!("setup ranking");
+//    //            show_rankings(cx, &pool, chat_id).await;
+//    //        }
+//    //        _ => (),
+//    //    }
+//    //    return next(ReadyState);
+//    //}
+//
+//    //cx.answer_str("Once you're ready to start the season, send '/start' into this chat and you can start betting on some games!").await?;
+//    match ans.as_str() {
+//        "/start" | "/start@BasketballBettingBot" => {
+//            let chat_id = cx.update.chat_id();
+//            change_active_chat_status(&pool, chat_id, true)
+//                .await
+//                .unwrap();
+//            cx.answer_str(r#"BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. The one who gets the most games right in a week gets one point.
+//You play against the other members of your group and the winner is the one who wins the most weeks.
+//Once everyone who wants to participate is in this group, send /start to begin!"#).await;
+//
+//            cx.answer_str("Your season begins now!").await;
+//            send_polls(&pool, chat_id, &cx.bot).await.unwrap();
+//            dbg!("SEASONS STARTS");
+//            return next(ReadyState);
+//        }
+//        _ => {
+//            cx.answer_str("Send /start to begin your season!").await;
+//            return next(SetupState);
+//        }
+//    }
+//
+//    next(SetupState)
+//}
+//
 #[teloxide(subtransition)]
-async fn setup(_state: SetupState, cx: TransitionIn, ans: String) -> TransitionOut<Dialogue> {
-    dbg!("SETUP");
-    let pool = PgPool::connect(
-        &env::var("DATABASE_URL").expect("Could not find DATABASE_URL environment variable!"),
-    )
-    .await
-    .expect("Could not establish connection to database");
-
-    //let chat_is_known = sqlx::query!("SELECT * FROM chats WHERE id = $1", chat_id)
-    //    .fetch_one(&pool)
-    //    .await;
-
-    //if let Err(error) = chat_is_known {
-    //    println!("Error {:?}", error);
-    //    sqlx::query!(
-    //        "INSERT INTO chats(id) VALUES ($1) ON CONFLICT DO NOTHING",
-    //        chat_id
-    //    )
-    //    .execute(&pool)
-    //    .await;
-    //}
-
-    let admins = cx
-        .bot
-        .get_chat_administrators(cx.chat_id())
-        .send()
-        .await
-        .unwrap_or(vec![]); // no admin present in non-group chats
-
-    let chat_member = &cx
-        .update
-        .from()
-        .expect("Could not get information of the user!")
-        .first_name;
-    //if get_active_chat_status(&pool, chat_id)
-    //    .await
-    //    .unwrap_or(false)
-    //    == true
-    //{
-    //    match ans.as_str() {
-    //        "/rankings" | "/rankings@BasketballBettingBot" => {
-    //            let chat_id = cx.update.chat_id();
-    //            dbg!("setup ranking");
-    //            show_rankings(cx, &pool, chat_id).await;
-    //        }
-    //        _ => (),
-    //    }
-    //    return next(ReadyState);
-    //}
-
-    //cx.answer_str("Once you're ready to start the season, send '/start' into this chat and you can start betting on some games!").await?;
-    match ans.as_str() {
-        "/start" | "/start@BasketballBettingBot" => {
-            let chat_id = cx.update.chat_id();
-            change_active_chat_status(&pool, chat_id, true)
-                .await
-                .unwrap();
-            cx.answer_str(r#"BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. The one who gets the most games right in a week gets one point.
-You play against the other members of your group and the winner is the one who wins the most weeks.
-Once everyone who wants to participate is in this group, send /start to begin!"#).await;
-
-            cx.answer_str("Your season begins now!").await;
-            send_polls(&pool, chat_id, &cx.bot).await.unwrap();
-            dbg!("SEASONS STARTS");
-            return next(ReadyState);
-        }
-        _ => {
-            cx.answer_str("Send /start to begin your season!").await;
-            return next(SetupState);
-        }
-    }
-
-    next(SetupState)
-}
-
-#[teloxide(subtransition)]
-async fn ready(state: ReadyState, cx: TransitionIn, ans: String) -> TransitionOut<Dialogue> {
+async fn ready(_state: ReadyState, cx: TransitionIn, ans: String) -> TransitionOut<Dialogue> {
     dbg!("READY");
     let pool = PgPool::connect(
         &env::var("DATABASE_URL").expect("Could not find DATABASE_URL environment variable!"),
@@ -104,15 +104,8 @@ async fn ready(state: ReadyState, cx: TransitionIn, ans: String) -> TransitionOu
     .expect("Could not establish connection to database");
 
     let chat_id = cx.chat_id();
-    let chat_is_known = sqlx::query!("SELECT EXISTS(SELECT * FROM chats WHERE id = $1)", chat_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap()
-        .exists
-        .unwrap();
-
+    let chat_is_known = chat_is_known(&pool, chat_id).await.unwrap_or(false);
     if !chat_is_known {
-        dbg!("{chat_id} is now added to known chats", chat_id);
         sqlx::query!(
             "INSERT INTO chats(id) VALUES ($1) ON CONFLICT DO NOTHING",
             chat_id
@@ -123,24 +116,29 @@ async fn ready(state: ReadyState, cx: TransitionIn, ans: String) -> TransitionOu
 
     let ans = ans.as_str();
 
-    if (get_active_chat_status(&pool, chat_id).await.unwrap() == false)
+    // if the chat was not yet marked as active and they send a message other than start
+    // we'll send them to the SetupState where they can 
+    if !get_active_chat_status(&pool, chat_id).await.unwrap_or(false)
         && (ans != "/start" && ans != "/start@BasketballBettingBot")
     {
-        cx.answer_str("Send /start to begin your season!").await;
-        return next(SetupState);
+        cx.answer_str("Send /start to begin your season!").await?;
+        return next(ReadyState);
     }
 
     match ans {
         "/start" | "/start@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
+            if get_active_chat_status(&pool, chat_id).await.unwrap_or(false) {
+                cx.answer_str("Looks like you've started your season already!").await?;
+                return next(ReadyState);
+            }
             change_active_chat_status(&pool, chat_id, true)
-                .await
-                .unwrap();
+                .await;
             cx.answer_str(r#"BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. The one who gets the most games right in a week gets one point.
 You play against the other members of your group and the winner is the one who wins the most weeks.
-Once everyone who wants to participate is in this group, send /start to begin!"#).await;
-            cx.answer_str("Your season begins now!").await;
-            send_polls(&pool, chat_id, &cx.bot).await.unwrap();
+Once everyone who wants to participate is in this group, send /start to begin!"#).await?;
+            cx.answer_str("Your season begins now!").await?;
+            send_polls(&pool, chat_id, &cx.bot).await;
             dbg!("SEASONS STARTS");
             return next(ReadyState);
         }
@@ -163,7 +161,7 @@ Once everyone who wants to participate is in this group, send /start to begin!"#
 
             //let gif = cx.answer_animation(sage).caption("K").send().await;
 
-            let gif = cx.answer_animation(photo).send().await;
+            cx.answer_animation(photo).send().await;
             //let gif = cx.bot.send_photo(chat_id, photo).send();
             //cx.answer_photo(photo)
             //    .caption("KYRIE")
@@ -178,7 +176,7 @@ You play against the other members of your group and the winner is the one who w
 Once everyone who wants to participate is in this group, send /start to begin if you haven't done so already!
 
 /standings to see who's the GOAT bettor this week.
-/sage to cleanse the energy of this chat"#).await;
+/sage to cleanse the energy of this chat"#).await?;
         }
         _ => (),
     }
@@ -212,6 +210,17 @@ async fn change_active_chat_status(
     Ok(())
 }
 
+async fn chat_is_known(pool: &PgPool, chat_id: i64) -> Result<bool, Error> {
+    let is_known = sqlx::query!("SELECT EXISTS(SELECT * FROM chats WHERE id = $1)", chat_id)
+        .fetch_one(pool)
+        .await?;
+
+    is_known.exists.ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
+
+
+
+}
+
 // states.rs
 //use derive_more;
 use teloxide_macros::Transition;
@@ -220,7 +229,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Transition, derive_more::From, Serialize, Deserialize)]
 pub enum Dialogue {
-    Setup(SetupState),
+    //Setup(SetupState),
     Ready(ReadyState),
 }
 
@@ -247,11 +256,6 @@ async fn main() {
 async fn run() {
     teloxide::enable_logging!();
     log::info!("Starting the bot!");
-    let pool = PgPool::connect(
-        &env::var("DATABASE_URL").expect("Could not find environment variable DATABASE_URL"),
-    )
-    .await
-    .expect("Could not establish connection do database");
 
     let bot = Bot::new(BOT_TOKEN.to_owned());
 
@@ -317,9 +321,9 @@ async fn handle_poll_answer(
             pool,
             cx.update.user.id as i64,
             cx.update.user.first_name,
-            cx.update.user.last_name.unwrap_or(String::from("")),
-            cx.update.user.username.unwrap_or(String::from("")),
-            cx.update.user.language_code.unwrap_or(String::from("en")),
+            cx.update.user.last_name.unwrap_or_else(|| "".to_string()),
+            cx.update.user.username.unwrap_or_else(|| "".to_string()),
+            cx.update.user.language_code.unwrap_or_else(|| "en".to_string()),
             chat_id,
         )
         .await?;
@@ -344,14 +348,14 @@ async fn handle_poll_answer(
 }
 
 async fn poll_is_in_db(pool: &PgPool, poll_id: String) -> Result<bool, Error> {
-    Ok(sqlx::query!(
+    sqlx::query!(
         "SELECT EXISTS(SELECT id from polls WHERE id = $1);",
         poll_id
     )
     .fetch_one(pool)
     .await?
     .exists
-    .unwrap())
+    .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
 }
 
 async fn add_bet(
@@ -383,7 +387,7 @@ async fn bet_to_team_id(pool: &PgPool, bet: i32, game_id: i32) -> Result<i32, Er
     // bet is 0 if first option was picked (the away team)
     // bet is 1 if second option was picked (the home team)
     match bet {
-        0 => Ok(sqlx::query!(
+        0 => sqlx::query!(
             r#"
             SELECT away_team FROM games WHERE id = $1;
             "#,
@@ -392,8 +396,9 @@ async fn bet_to_team_id(pool: &PgPool, bet: i32, game_id: i32) -> Result<i32, Er
         .fetch_one(pool)
         .await?
         .away_team
-        .unwrap()),
-        1 => Ok(sqlx::query!(
+        .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
+        ,
+        1 => sqlx::query!(
             r#"
             SELECT home_team FROM games WHERE id = $1;
             "#,
@@ -402,7 +407,7 @@ async fn bet_to_team_id(pool: &PgPool, bet: i32, game_id: i32) -> Result<i32, Er
         .fetch_one(pool)
         .await?
         .home_team
-        .unwrap()),
+        .ok_or(Error::SQLxError(sqlx::Error::RowNotFound)),
         _ => panic!("Could not convert bet to team_id!"),
     }
 }
@@ -420,20 +425,17 @@ async fn get_chat_id_game_id_from_poll(
     )
     .fetch_one(pool)
     .await?;
-    //.chat_id
-    //.expect("Could not get chat_id, game_id from poll_id");
 
-    Ok((row.chat_id.unwrap(), row.game_id.unwrap()))
+    Ok((row.chat_id.unwrap_or(-1), row.game_id.unwrap_or(-1)))
 }
 
 async fn user_is_in_db(pool: &PgPool, user_id: i64) -> Result<bool, Error> {
-    Ok(
         sqlx::query!("SELECT EXISTS(SELECT * FROM users WHERE id = $1)", user_id)
             .fetch_one(pool)
             .await?
             .exists
-            .unwrap(),
-    )
+            .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
+
 }
 
 async fn add_user(
@@ -553,7 +555,7 @@ async fn show_complete_rankings(cx: UpdateWithCx<Message>, pool: &PgPool, chat_i
             );
 
     for record in ranking_query {
-        let first_name = record.first_name.unwrap();
+        let first_name = record.first_name.unwrap_or_else(|| "X".to_string());
         let mut spacing = String::from("");
 
         if let len @ 0..=13 = first_name.len() {
@@ -564,7 +566,7 @@ async fn show_complete_rankings(cx: UpdateWithCx<Message>, pool: &PgPool, chat_i
         rankings.push_str(
             &format!(
                 "    {rank}    | {spacing} {first_name} {spacing} | \t\t\t\t\t\t\t\t\t{weeks_won}\n",
-                rank = record.rank.unwrap(),
+                rank = record.rank.unwrap_or(-1),
                 first_name = first_name,
                 spacing = spacing,
                 //     last_name = record.last_name.unwrap(),
@@ -575,7 +577,7 @@ async fn show_complete_rankings(cx: UpdateWithCx<Message>, pool: &PgPool, chat_i
                 //             _ => format!("@{}", username),
                 //         }
                 //     },
-                weeks_won = record.weeks_won.unwrap()
+                weeks_won = record.weeks_won.unwrap_or(-1)
             )
             .as_str(),
         );
@@ -615,7 +617,7 @@ async fn show_week_rankings(
         cx.answer_str("Make sure to answer at least one poll before showing the standings!").await?;
         return Ok(())
     } else {
-         week_number = week_number_raw.unwrap().week_number.unwrap();
+         week_number = week_number_raw.unwrap().week_number.unwrap_or(-1);
     }
     let mut rankings = 
         format!("Week {week_number}\nYou get one point for every correct bet\n\nRank |          Name          |    Points\n--- --- --- --- --- --- --- --- --- --\n",
@@ -624,7 +626,7 @@ async fn show_week_rankings(
 
     dbg!(&ranking_query);
     for record in ranking_query {
-        let first_name = record.first_name.unwrap();
+        let first_name = record.first_name.unwrap_or_else(|| "X".to_string());
         let mut spacing = String::from("");
 
         if let len @ 0..=13 = first_name.len() {
@@ -635,7 +637,7 @@ async fn show_week_rankings(
         rankings.push_str(
             &format!(
                 "    {rank}    | {spacing} {first_name} {spacing} | \t\t\t\t\t\t{correct_bets_week}\n",
-                rank = record.rank_number.unwrap(),
+                rank = record.rank_number.unwrap_or(-1),
                 first_name = first_name,
                 spacing = spacing,
                 //     last_name = record.last_name.unwrap(),
@@ -646,7 +648,7 @@ async fn show_week_rankings(
                 //             _ => format!("@{}", username),
                 //         }
                 //     },
-                correct_bets_week = record.correct_bets_week.unwrap()
+                correct_bets_week = record.correct_bets_week.unwrap_or(-1)
             )
             .as_str(),
         );
