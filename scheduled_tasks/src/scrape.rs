@@ -28,13 +28,10 @@ pub async fn scrape_teams() -> Result<(), Error> {
 
         // if the row has 8 or 9 entries, it's a team description
         if vec![8, 9, 10].contains(&td.len()) {
-            dbg!(&td);
-            dbg!(&td.len());
             let name = td[0];
             let srs = td[td.len() - 1].parse::<sqlx::types::BigDecimal>().unwrap();
             let wins = td[td.len() - 7].parse::<i32>().unwrap();
             let losses = td[td.len() - 6].parse::<i32>().unwrap();
-            println!("{:?} {:?}", &name, &srs);
             sqlx::query!(
                 r#"
                 INSERT INTO teams(name,wins,losses,srs) VALUES

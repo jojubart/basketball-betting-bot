@@ -42,10 +42,6 @@ pub async fn send_polls(pool: &PgPool, chat_id: i64, bot: &teloxide::Bot) -> any
     let bet_week = get_bet_week(pool, chat_id).await?;
     let today = east_coast_date_today()?;
 
-    dbg!(bet_week.polls_sent);
-    dbg!(today >= bet_week.end_date);
-    dbg!(!bet_week.polls_sent || today >= bet_week.end_date);
-
     // if week_number is 0 it's the first time polls are sent to the chat
     // that means we have not entry yet for the chat in bet_weeks and want to send the polls for
     // the upcoming week right away
@@ -76,7 +72,6 @@ pub async fn send_polls(pool: &PgPool, chat_id: i64, bot: &teloxide::Bot) -> any
         .await?;
 
         for game in &games {
-            dbg!(game);
             send_game(&pool, game.id, chat_id, game, &bot, bet_week_id).await?;
         }
 
@@ -111,7 +106,6 @@ async fn insert_bet_week(
 }
 
 async fn _update_bet_week(pool: &PgPool, bet_week_id: i32) -> anyhow::Result<()> {
-    dbg!("update_bet_week was called");
     sqlx::query!(
         r#"
         UPDATE bet_weeks
@@ -146,9 +140,6 @@ async fn get_bet_week(pool: &PgPool, chat_id: i64) -> Result<BetWeek, Error> {
     // in that case, we insert the initial bet_week values and start the week from today
     match row {
         Some(row) => {
-            dbg!("SOME PATH");
-            dbg!(&row);
-
             return Ok(BetWeek {
                 id: row.id,
                 week_number: row.week_number.unwrap(),
@@ -162,8 +153,6 @@ async fn get_bet_week(pool: &PgPool, chat_id: i64) -> Result<BetWeek, Error> {
             let start_date = east_coast_date_in_x_days(1, false)?;
             let end_date = east_coast_date_in_x_days(7, false)?;
             let polls_sent = false;
-            dbg!("NONE PATH");
-            dbg!(start_date, end_date);
 
             //let bet_week_id =
             //   insert_bet_week(pool, chat_id, week_number, start_date, end_date, false)
@@ -344,9 +333,7 @@ async fn get_games(
     .await?;
 
     let mut games = Vec::new();
-    dbg!(&games_raw);
     for record in games_raw {
-        dbg!(&record);
         let game: Game = Game {
             id: record.game_id.unwrap(),
             away_team_id: record.away_team_id.unwrap(),
