@@ -34,7 +34,15 @@ async fn main() -> anyhow::Result<()> {
         // don't send polls in the middle of the night in USA and Europe
         if chrono::Utc::now().hour() >= 19 {
             for chat_id in chats {
-                send_polls(&pool, chat_id.id, &bot).await?;
+                let poll_sent_success = send_polls(&pool, chat_id.id, &bot).await;
+
+                if let Err(e) = poll_sent_success {
+                    eprintln!(
+                        "ERROR {e}\nCould not send polls for chat_id {chat_id}",
+                        e = e,
+                        chat_id = chat_id.id
+                    );
+                }
             }
         }
         stop_poll(&pool, &bot).await?;

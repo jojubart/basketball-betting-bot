@@ -202,11 +202,8 @@ async fn send_game(
     bot: &teloxide::Bot,
     bet_week_id: i32,
 ) -> anyhow::Result<()> {
-    if poll_is_in_db(&pool, game_id, chat_id)
-        .await
-        .expect("Database Error: poll_is_in_db")
-    {
-        dbg!("entry already in polls table!");
+    if poll_is_in_db(&pool, game_id, chat_id).await? {
+        eprintln!("entry already in polls table!");
         return Ok(());
     } else {
         let poll = bot
@@ -223,12 +220,19 @@ async fn send_game(
             .disable_notification(true)
             .is_anonymous(false)
             .send()
-            .await
-            .expect("could not send out poll!");
-        let poll_id = poll.poll().expect("").id.to_owned();
-        let local_id = poll.id;
+            .await;
 
-        add_poll(&pool, poll_id, local_id, chat_id, game.id, bet_week_id).await?;
+        if let Ok(poll) = poll {
+            let poll_id = poll.poll().expect("").id.to_owned();
+            let local_id = poll.id;
+
+            add_poll(&pool, poll_id, local_id, chat_id, game.id, bet_week_id).await?;
+        } else {
+            eprintln!(
+                "POLL in chat {chat_id} could not be sent",
+                chat_id = chat_id
+            );
+        }
     }
     Ok(())
 }
@@ -288,9 +292,6 @@ async fn get_games(
     start_date: chrono::NaiveDate,
     end_date: chrono::NaiveDate,
 ) -> anyhow::Result<Vec<Game>> {
-    // All I wanted to do was getting the current east coast date (not datetime) based on utc team
-    // and now this monstrosity is here. Please let me know the proper way to do this. Please.
-
     let games_raw = sqlx::query!(
         r#"
         SELECT * FROM (

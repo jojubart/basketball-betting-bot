@@ -1,2 +1,13 @@
 - use include_str!() for config.ini file (is it possible to still use as .ini?)
-- 
+
+
+Bugs: 
+	- when bot is removed from group chat and tries to send weekly polls it 
+	  could crash
+	- ~change time format to 12 hour time~
+	- 
+
+Features:
+	- stop season (/stop) (PRIO 1)
+		- can only be done by admin after confirmation -> new State needed
+		- send final standings to chat and delete polls, bets, ... and chat  
