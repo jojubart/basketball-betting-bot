@@ -3,6 +3,7 @@ start - Start your season! (wait until everyone who wants to participate was add
 standings - Shows ranking for current week
 full_standings - Shows ranking for the whole season
 sage - Cleanse the chat from toxic energy
+stop_season - End the betting season and receive final standings. THIS CAN'T BE UNDONE!
 
 [description]
 BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. The one who gets the most games right in a week gets one point.

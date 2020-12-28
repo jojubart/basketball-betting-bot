@@ -13,96 +13,26 @@ lazy_static! {
 }
 
 // transitions.rs
-// use teloxide::prelude::*;
-//use super::states::*;
+mod transitions;
+use teloxide::prelude::*;
 use teloxide_macros::teloxide;
 mod utils;
 use utils::send_polls;
 
-//#[teloxide(subtransition)]
-//async fn setup(_state: SetupState, cx: TransitionIn, ans: String) -> TransitionOut<Dialogue> {
-//    dbg!("SETUP");
-//    let pool = PgPool::connect(
-//        &env::var("DATABASE_URL").expect("Could not find DATABASE_URL environment variable!"),
-//    )
-//    .await
-//    .expect("Could not establish connection to database");
-//
-//    //let chat_is_known = sqlx::query!("SELECT * FROM chats WHERE id = $1", chat_id)
-//    //    .fetch_one(&pool)
-//    //    .await;
-//
-//    //if let Err(error) = chat_is_known {
-//    //    println!("Error {:?}", error);
-//    //    sqlx::query!(
-//    //        "INSERT INTO chats(id) VALUES ($1) ON CONFLICT DO NOTHING",
-//    //        chat_id
-//    //    )
-//    //    .execute(&pool)
-//    //    .await;
-//    //}
-//
-//    let admins = cx
-//        .bot
-//        .get_chat_administrators(cx.chat_id())
-//        .send()
-//        .await
-//        .unwrap_or(vec![]); // no admin present in non-group chats
-//
-//    let chat_member = &cx
-//        .update
-//        .from()
-//        .expect("Could not get information of the user!")
-//        .first_name;
-//    //if get_active_chat_status(&pool, chat_id)
-//    //    .await
-//    //    .unwrap_or(false)
-//    //    == true
-//    //{
-//    //    match ans.as_str() {
-//    //        "/rankings" | "/rankings@BasketballBettingBot" => {
-//    //            let chat_id = cx.update.chat_id();
-//    //            dbg!("setup ranking");
-//    //            show_rankings(cx, &pool, chat_id).await;
-//    //        }
-//    //        _ => (),
-//    //    }
-//    //    return next(ReadyState);
-//    //}
-//
-//    //cx.answer_str("Once you're ready to start the season, send '/start' into this chat and you can start betting on some games!").await?;
-//    match ans.as_str() {
-//        "/start" | "/start@BasketballBettingBot" => {
-//            let chat_id = cx.update.chat_id();
-//            change_active_chat_status(&pool, chat_id, true)
-//                .await
-//                .unwrap();
-//            cx.answer_str(r#"BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. The one who gets the most games right in a week gets one point.
-//You play against the other members of your group and the winner is the one who wins the most weeks.
-//Once everyone who wants to participate is in this group, send /start to begin!"#).await;
-//
-//            cx.answer_str("Your season begins now!").await;
-//            send_polls(&pool, chat_id, &cx.bot).await.unwrap();
-//            dbg!("SEASONS STARTS");
-//            return next(ReadyState);
-//        }
-//        _ => {
-//            cx.answer_str("Send /start to begin your season!").await;
-//            return next(SetupState);
-//        }
-//    }
-//
-//    next(SetupState)
-//}
-//
 #[teloxide(subtransition)]
 async fn ready(_state: ReadyState, cx: TransitionIn, ans: String) -> TransitionOut<Dialogue> {
     dbg!("READY");
     let pool = PgPool::connect(
         &env::var("DATABASE_URL").expect("Could not find DATABASE_URL environment variable!"),
     )
-    .await
-    .expect("Could not establish connection to database");
+    .await;
+
+    if let Err(e) = pool {
+        dbg!(e);
+        return next(ReadyState);
+    }
+
+    let pool = pool.unwrap();
 
     let chat_id = cx.chat_id();
     let chat_is_known = chat_is_known(&pool, chat_id).await.unwrap_or(false);
@@ -136,8 +66,7 @@ async fn ready(_state: ReadyState, cx: TransitionIn, ans: String) -> TransitionO
             change_active_chat_status(&pool, chat_id, true)
                 .await;
             cx.answer_str(r#"BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. The one who gets the most games right in a week gets one point.
-You play against the other members of your group and the winner is the one who wins the most weeks.
-Once everyone who wants to participate is in this group, send /start to begin!"#).await?;
+You play against the other members of your group and the winner is the one who wins the most weeks."#).await?;
             cx.answer_str("Your season begins now!").await?;
             send_polls(&pool, chat_id, &cx.bot).await;
             dbg!("SEASONS STARTS");
@@ -147,29 +76,29 @@ Once everyone who wants to participate is in this group, send /start to begin!"#
         "/standings" | "/standings@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
             //show_rankings(cx, &pool, chat_id).await;
-            show_week_rankings(cx, &pool, chat_id).await;
+            show_week_rankings(&cx, &pool, chat_id).await;
         }
         "/full_standings" | "/full_standings@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
-            show_complete_rankings(cx, &pool, chat_id).await;
+            show_complete_rankings(&cx, &pool, chat_id).await;
+        }
+        "/stop_season" | "/stop_season@BasketballBettingBot" => {
+            let chat_id = cx.update.chat_id();
+            if user_is_admin(chat_id, &cx).await.unwrap_or(false) {
+                cx.answer_str("Send /end_my_season to end the season.\n
+Afterwards you will get the standings of this week and the complete results table.\n
+YOU CAN'T UNDO THIS ACTION AND ALL YOUR BETS AND RESULTS ARE LOST!").await?;
+                return next(StopState);
+            } else {
+                cx.answer_str("Only the group admins can stop the season!").await?;
+            }
         }
         "/sage" | "/sage@BasketballBettingBot" => {
             let photo = teloxide::types::InputFile::Url(
                 "https://media.giphy.com/media/zLVTQRSiCm2a8kljMq/giphy.gif".to_string(),
             );
-            //let sage_raw = std::path::PathBuf::from("sage.GIF");
-            //let sage = teloxide::types::InputFile::File(sage_raw);
-
-            //let gif = cx.answer_animation(sage).caption("K").send().await;
 
             cx.answer_animation(photo).send().await;
-            //let gif = cx.bot.send_photo(chat_id, photo).send();
-            //cx.answer_photo(photo)
-            //    .caption("KYRIE")
-            //    .parse_mode(teloxide::types::ParseMode::HTML)
-            //    .disable_notification(true)
-            //    .send()
-            //    .await;
         }
         "/help" | "/help@BasketballBettingBot" => {
             cx.answer_str(r#"BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. The one who gets the most games right in a week gets one point.
@@ -185,6 +114,54 @@ Once everyone who wants to participate is in this group, send /start to begin if
     next(ReadyState)
 }
 
+#[teloxide(subtransition)]
+async fn stop_season(_state: StopState, cx: TransitionIn, ans: String) -> TransitionOut<Dialogue> { 
+    let pool = PgPool::connect(
+        &env::var("DATABASE_URL").expect("Could not find DATABASE_URL environment variable!"),
+    )
+    .await;
+
+    if let Err(e) = pool {
+        dbg!(e);
+        return next(ReadyState);
+    }
+    let pool = pool.expect("Could not establish DB connection!");
+    
+
+    dbg!("StopState");
+    let chat_id = cx.update.chat_id();
+    if !user_is_admin(chat_id, &cx).await.unwrap_or(false) {
+        cx.answer_str("Only the group admins can stop the chat!").await?;
+        return next(ReadyState);
+    }
+    match ans.as_str() {
+        "/end_my_season" => {
+            show_week_rankings(&cx, &pool, chat_id).await;
+            show_complete_rankings(&cx, &pool, chat_id).await;
+            remove_chat(&pool, chat_id).await;
+            cx.answer_str("SEASON ENDED").await?;
+        }
+        _ => {cx.answer_str("The season continues!").await?;
+    }}
+    next(ReadyState)
+}
+
+async fn user_is_admin(chat_id: i64, cx: &UpdateWithCx<Message>) -> Result<bool, Error> {
+    let admins = cx.bot.get_chat_administrators(chat_id).send().await.unwrap_or_default();
+
+    Ok(admins.iter().map(|chat_member| chat_member.user.id)
+                 .any(|x| x == cx.update.from().unwrap().id))
+
+}
+
+async fn remove_chat(pool: &PgPool, chat_id: i64) -> Result<(), Error> {
+
+    sqlx::query!("DELETE FROM bets WHERE chat_id = $1", chat_id).execute(pool).await?;
+    sqlx::query!("DELETE FROM polls WHERE chat_id = $1", chat_id).execute(pool).await?;
+    sqlx::query!("DELETE FROM bet_weeks WHERE chat_id = $1", chat_id).execute(pool).await?;
+    sqlx::query!("DELETE FROM chats WHERE id = $1", chat_id).execute(pool).await?;
+    Ok(())
+}
 
 async fn change_active_chat_status(
     pool: &PgPool,
@@ -215,13 +192,14 @@ async fn chat_is_known(pool: &PgPool, chat_id: i64) -> Result<bool, Error> {
 
 // states.rs
 //use derive_more;
+mod states;
 use teloxide_macros::Transition;
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Transition, derive_more::From, Serialize, Deserialize)]
 pub enum Dialogue {
-    //Setup(SetupState),
+    Stop(StopState),
     Ready(ReadyState),
 }
 
@@ -232,7 +210,7 @@ impl Default for Dialogue {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct SetupState;
+pub struct StopState;
 
 #[derive(Serialize, Deserialize)]
 pub struct ReadyState;
@@ -519,7 +497,7 @@ async fn add_user(
 //    cx.answer_str(rankings).await;
 //    Ok(())
 //}
-async fn show_complete_rankings(cx: UpdateWithCx<Message>, pool: &PgPool, chat_id: i64) -> Result<(), Error> {
+async fn show_complete_rankings(cx: &UpdateWithCx<Message>, pool: &PgPool, chat_id: i64) -> Result<(), Error> {
     let ranking_query = sqlx::query!(
         r#"
         SELECT 
@@ -584,7 +562,7 @@ async fn show_complete_rankings(cx: UpdateWithCx<Message>, pool: &PgPool, chat_i
 }
 
 async fn show_week_rankings(
-    cx: UpdateWithCx<Message>,
+    cx: &UpdateWithCx<Message>,
     pool: &PgPool,
     chat_id: i64,
 ) -> Result<(), Error> {
