@@ -189,6 +189,8 @@ CREATE OR REPLACE VIEW correct_bets AS
 		,bets.bet
 		--,polls.chat_id
 		,bet_weeks.week_number
+		,bet_weeks.start_date
+		,bet_weeks.end_date
 		
 	FROM bets
 	JOIN
@@ -206,6 +208,8 @@ SELECT
 	,bet_weeks.week_number
 	,0 as correct_bets_week
 	,bets.chat_id
+	,bet_weeks.start_date
+	,bet_weeks.end_date
 
 FROM 
     users 
@@ -235,6 +239,8 @@ SELECT
 	,week_number
 	,correct_bets_week
 	,chat_id
+	,start_date
+	,end_date
 	,RANK() OVER (
 			PARTITION BY chat_id, week_number
 			ORDER BY correct_bets_week DESC
@@ -248,6 +254,8 @@ JOIN
 		,correct_bets.week_number
 		,count(*) AS correct_bets_week
 		,chat_id
+		,start_date
+		,end_date
 	FROM correct_bets 
 	JOIN 
 		users ON correct_bets.user_id = users.id
@@ -255,6 +263,8 @@ JOIN
 		users.id
 		,chat_id
 		,correct_bets.week_number
+		,start_date
+		,end_date
 
 	UNION
 

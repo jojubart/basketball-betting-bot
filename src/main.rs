@@ -590,10 +590,20 @@ async fn show_week_rankings(
 ) -> Result<(), Error> {
     let ranking_query = sqlx::query!(
         r#"
-        SELECT first_name, last_name, username, correct_bets_week, week_number, rank_number FROM weekly_rankings
+        SELECT first_name
+        ,last_name
+        ,username
+        ,correct_bets_week
+        ,week_number
+        ,rank_number
+        FROM weekly_rankings
         WHERE
         chat_id = $1
-        AND week_number = (SELECT MAX(week_number) FROM weekly_rankings WHERE chat_id = $1)
+        AND 
+                week_number = (SELECT MAX(week_number)
+                                FROM weekly_rankings
+                                WHERE chat_id = $1
+                                AND start_date AT TIME ZONE 'EST' <= NOW() AT TIME ZONE 'EST' - INTERVAL '1 DAYS')
         ORDER BY correct_bets_week DESC;
 
         "#,
@@ -608,7 +618,7 @@ async fn show_week_rankings(
     let week_number;
     let week_number_raw = &ranking_query.get(0);
     if week_number_raw.is_none() {
-        cx.answer_str("Make sure to answer at least one poll before showing the standings!").await?;
+        cx.answer_str("You can see the standings tomorrow after your first round of games is finished.\nAlso, make sure to answer at least one poll to see the standings!").await?;
         return Ok(())
     } else {
          week_number = week_number_raw.unwrap().week_number.unwrap_or(-1);
@@ -618,7 +628,6 @@ async fn show_week_rankings(
             week_number = 
             week_number);
 
-    dbg!(&ranking_query);
     for record in ranking_query {
         let first_name = record.first_name.unwrap_or_else(|| "X".to_string());
         let mut spacing = String::from("");

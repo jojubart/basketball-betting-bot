@@ -16,3 +16,4 @@ Features:
 	- add more modes 
 		- Europe mode?
 	- always include certain teams in bets
+	- send top highlight from reddit to chat with /highlight
