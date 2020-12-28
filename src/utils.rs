@@ -1,4 +1,4 @@
-use crate::{get_active_chat_status, Error};
+use crate::Error;
 use sqlx::{postgres::PgPool, types::BigDecimal};
 use teloxide::prelude::*;
 
@@ -417,6 +417,62 @@ pub async fn number_of_finished_games_week(pool: &PgPool, chat_id: i64) -> Resul
     } else {
         return Ok(0);
     }
+}
+
+pub async fn user_is_admin(chat_id: i64, cx: &UpdateWithCx<Message>) -> Result<bool, Error> {
+    let admins = cx
+        .bot
+        .get_chat_administrators(chat_id)
+        .send()
+        .await
+        .unwrap_or_default();
+
+    Ok(admins
+        .iter()
+        .map(|chat_member| chat_member.user.id)
+        .any(|x| x == cx.update.from().unwrap().id))
+}
+
+pub async fn remove_chat(pool: &PgPool, chat_id: i64) -> Result<(), Error> {
+    sqlx::query!("DELETE FROM bets WHERE chat_id = $1", chat_id)
+        .execute(pool)
+        .await?;
+    sqlx::query!("DELETE FROM polls WHERE chat_id = $1", chat_id)
+        .execute(pool)
+        .await?;
+    sqlx::query!("DELETE FROM bet_weeks WHERE chat_id = $1", chat_id)
+        .execute(pool)
+        .await?;
+    sqlx::query!("DELETE FROM chats WHERE id = $1", chat_id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+pub async fn change_active_chat_status(
+    pool: &PgPool,
+    chat_id: i64,
+    new_status: bool,
+) -> Result<(), Error> {
+    sqlx::query!(
+        "UPDATE chats SET is_active = $1 WHERE id = $2",
+        new_status,
+        chat_id
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn chat_is_known(pool: &PgPool, chat_id: i64) -> Result<bool, Error> {
+    let is_known = sqlx::query!("SELECT EXISTS(SELECT * FROM chats WHERE id = $1)", chat_id)
+        .fetch_one(pool)
+        .await?;
+
+    is_known
+        .exists
+        .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
 }
 
 #[derive(Debug)]

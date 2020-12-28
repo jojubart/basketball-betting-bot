@@ -1,13 +1,9 @@
-use chrono::prelude::*;
-use chrono::{DateTime, FixedOffset, NaiveDate, Utc};
+use basketball_betting_bot::Error;
+use chrono::{DateTime, FixedOffset};
 use log::warn;
 use scraper::{Html, Selector};
 use sqlx::postgres::PgPool;
 use std::env;
-//#[tokio::main]
-//async fn main() -> Result<(), reqwest::Error> {
-//use crate::Error;
-use basketball_betting_bot::Error;
 
 pub async fn scrape_teams() -> Result<(), Error> {
     let pool = PgPool::connect(&env::var("DATABASE_URL")?).await?;
@@ -45,7 +41,8 @@ pub async fn scrape_teams() -> Result<(), Error> {
                 srs
             )
             .execute(&pool)
-            .await;
+            .await
+            .unwrap_or_default();
         }
     }
 

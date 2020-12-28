@@ -1,7 +1,6 @@
 pub mod utils;
 use sqlx::postgres::PgPool;
 
-#[macro_use]
 extern crate derive_more;
 use ini::Ini;
 use teloxide::RequestError;

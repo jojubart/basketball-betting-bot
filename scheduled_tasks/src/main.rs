@@ -4,7 +4,7 @@ mod scrape;
 use basketball_betting_bot::utils::*;
 use chrono::{Datelike, Timelike};
 use scrape::*;
-use sqlx::{postgres::PgPool, types::BigDecimal};
+use sqlx::postgres::PgPool;
 use std::env;
 use teloxide::prelude::*;
 
@@ -17,6 +17,7 @@ async fn main() -> anyhow::Result<()> {
         scrape_games(month).await?;
     }
     let token = get_token("../config.ini");
+    #[allow(deprecated)]
     let bot = Bot::new(&token);
     let pool = PgPool::connect(
         &env::var("DATABASE_URL").expect("Could not find environment variable DATABASE_URL"),
@@ -28,7 +29,7 @@ async fn main() -> anyhow::Result<()> {
         let chats = sqlx::query!("SELECT DISTINCT id FROM chats WHERE is_active = True")
             .fetch_all(&pool)
             .await
-            .unwrap_or(vec![]);
+            .unwrap_or_default();
 
         // don't send polls in the middle of the night in USA and Europe
         if chrono::Utc::now().hour() >= 19 {
