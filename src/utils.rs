@@ -402,7 +402,7 @@ pub async fn number_of_finished_games_week(pool: &PgPool, chat_id: i64) -> Resul
             polls JOIN games ON games.id = polls.game_id
             JOIN bet_weeks ON bet_weeks.id = polls.bet_week_id
         WHERE
-            games.date_time <= NOW() AT TIME ZONE 'EST' - interval '6 hours' 
+            games.date_time AT TIME ZONE 'EST' <= NOW() AT TIME ZONE 'EST' - interval '6 hours' 
             AND bet_weeks.end_date AT TIME ZONE 'EST' >= NOW() AT TIME ZONE 'EST'
             AND bet_weeks.start_date AT TIME ZONE 'EST' <= NOW() AT TIME ZONE 'EST'
             AND polls.chat_id = $1;

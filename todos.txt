@@ -3,7 +3,7 @@
 
 Bugs: 
 	- when bot is removed from group chat and tries to send weekly polls it 
-	  could crash
+	  could crash[FIXED]
 	- ~change time format to 12 hour time~
 	- 
 
@@ -11,3 +11,8 @@ Features:
 	- stop season (/stop) (PRIO 1)
 		- can only be done by admin after confirmation -> new State needed
 		- send final standings to chat and delete polls, bets, ... and chat  
+	- send out results for a specific week -> inline keyboard
+	- automatically send out weekly results
+	- add more modes 
+		- Europe mode?
+	- always include certain teams in bets
