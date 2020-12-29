@@ -7,6 +7,13 @@ Bugs:
 
 Features:
 	- send out results for a specific week -> inline keyboard (Prio 1)
+		- ask user for which week he wants to see results, Number from 1 to max_week_for_chat
+		- check user input for validity in SendSpecificWeekState:
+			- valid: 
+				- if week exists send week results
+				- else: send message that week X has not been played yet
+			- invalid:
+				- send message: "Please send me a valid number from 1 to MAX(WEEK)"
 	- automatically send out weekly results
 	- add more modes 
 		- Europe mode?

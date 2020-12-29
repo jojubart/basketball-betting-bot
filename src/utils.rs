@@ -226,8 +226,8 @@ async fn send_game(
     Ok(())
 }
 
-async fn poll_is_in_db(pool: &PgPool, game_id: i32, chat_id: i64) -> Result<bool, Error> {
-    let is_in_poll_table = sqlx::query!(
+pub async fn poll_is_in_db(pool: &PgPool, game_id: i32, chat_id: i64) -> Result<bool, Error> {
+     sqlx::query!(
         r#"
         SELECT EXISTS(
             SELECT * 
@@ -242,9 +242,18 @@ async fn poll_is_in_db(pool: &PgPool, game_id: i32, chat_id: i64) -> Result<bool
     )
     .fetch_one(pool)
     .await?
-    .exists;
+    .exists.ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
+}
 
-    Ok(is_in_poll_table.unwrap())
+pub async fn poll_is_in_db_by_poll_id(pool: &PgPool, poll_id: String) -> Result<bool, Error> {
+    sqlx::query!(
+        "SELECT EXISTS(SELECT id from polls WHERE id = $1);",
+        poll_id
+    )
+    .fetch_one(pool)
+    .await?
+    .exists
+    .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
 }
 
 async fn add_poll(
@@ -474,6 +483,252 @@ pub async fn chat_is_known(pool: &PgPool, chat_id: i64) -> Result<bool, Error> {
         .exists
         .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
 }
+
+pub async fn add_bet(
+    pool: &PgPool,
+    game_id: i32,
+    chat_id: i64,
+    user_id: i64,
+    bet: i32,
+    poll_id: String,
+) -> Result<(), Error> {
+    sqlx::query!(
+        r#"
+        INSERT INTO bets(game_id, chat_id, user_id, bet, poll_id) VALUES 
+        ($1, $2, $3, $4, $5);
+        "#,
+        game_id,
+        chat_id,
+        user_id,
+        bet,
+        poll_id
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn bet_to_team_id(pool: &PgPool, bet: i32, game_id: i32) -> Result<i32, Error> {
+    // bet is 0 if first option was picked (the away team)
+    // bet is 1 if second option was picked (the home team)
+    match bet {
+        0 => sqlx::query!(
+            r#"
+            SELECT away_team FROM games WHERE id = $1;
+            "#,
+            game_id
+        )
+        .fetch_one(pool)
+        .await?
+        .away_team
+        .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
+        ,
+        1 => sqlx::query!(
+            r#"
+            SELECT home_team FROM games WHERE id = $1;
+            "#,
+            game_id
+        )
+        .fetch_one(pool)
+        .await?
+        .home_team
+        .ok_or(Error::SQLxError(sqlx::Error::RowNotFound)),
+        _ => panic!("Could not convert bet to team_id!"),
+    }
+}
+
+pub async fn get_chat_id_game_id_from_poll(
+    pool: &PgPool,
+    poll_id: String,
+) -> Result<(i64, i32), Error> {
+    dbg!(&poll_id);
+    let row = sqlx::query!(
+        r#"
+        SELECT chat_id, game_id FROM polls WHERE id = $1;
+        "#,
+        poll_id
+    )
+    .fetch_one(pool)
+    .await?;
+
+    Ok((row.chat_id.unwrap_or(-1), row.game_id.unwrap_or(-1)))
+}
+
+pub async fn user_is_in_db(pool: &PgPool, user_id: i64) -> Result<bool, Error> {
+        sqlx::query!("SELECT EXISTS(SELECT * FROM users WHERE id = $1)", user_id)
+            .fetch_one(pool)
+            .await?
+            .exists
+            .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
+
+}
+
+pub async fn add_user(
+    pool: &PgPool,
+    user_id: i64,
+    first_name: String,
+    last_name: String,
+    username: String,
+    language_code: String,
+    chat_id: i64,
+) -> Result<(), Error> {
+    sqlx::query!(
+        r#"
+            INSERT INTO users(id, first_name, last_name, username, language_code) VALUES
+            ($1, $2, $3, $4, $5);
+            "#,
+        user_id,
+        first_name,
+        last_name,
+        username,
+        language_code,
+    )
+    .execute(pool)
+    .await.unwrap_or_default();
+
+    sqlx::query!(
+        r#"
+            INSERT INTO points(chat_id, user_id) VALUES
+            ($1, $2)
+            "#,
+        chat_id,
+        user_id
+    )
+    .execute(pool)
+    .await.unwrap_or_default();
+
+    Ok(())
+}
+
+pub async fn show_complete_rankings(cx: &UpdateWithCx<Message>, pool: &PgPool, chat_id: i64) -> Result<(), Error> {
+    let ranking_query = sqlx::query!(
+        r#"
+        SELECT 
+         first_name
+         ,last_name
+         ,username
+         ,chat_id
+         ,SUM(CASE WHEN rank_number = 1 THEN 1 ELSE 0 END)  as weeks_won
+         ,RANK() OVER (partition by chat_id ORDER BY SUM(CASE WHEN rank_number = 1 THEN 1 ELSE 0 END) DESC )
+        FROM weekly_rankings WHERE chat_id = $1 
+    GROUP BY
+    first_name
+    ,last_name
+    ,username
+    ,chat_id
+    ORDER BY weeks_won DESC;
+        "#,
+        chat_id
+
+
+    ).fetch_all(pool).await?;
+
+    let mut rankings = 
+        String::from("Standings (include the ongoing week)\n\nRank |          Name          |    Weeks Won\n--- --- --- --- --- --- --- --- --- --- ---\n",
+            );
+
+    for record in ranking_query {
+        let first_name = record.first_name.unwrap_or_else(|| "X".to_string());
+        let mut spacing = String::from("");
+
+        if let len @ 0..=13 = first_name.len() {
+            for _ in 0..(13 - len) {
+                spacing.push('\t')
+            }
+        }
+        rankings.push_str(
+            &format!(
+                "    {rank}    | {spacing} {first_name} {spacing} | \t\t\t\t\t\t\t\t\t{weeks_won}\n",
+                rank = record.rank.unwrap_or(-1),
+                first_name = first_name,
+                spacing = spacing,
+                weeks_won = record.weeks_won.unwrap_or(-1)
+            )
+            .as_str(),
+        );
+    }
+
+    cx.answer(&rankings).send().await?;
+
+   Ok(())
+
+
+
+}
+
+pub async fn show_week_rankings(
+    cx: &UpdateWithCx<Message>,
+    pool: &PgPool,
+    chat_id: i64,
+) -> Result<(), Error> {
+    let ranking_query = sqlx::query!(
+        r#"
+        SELECT first_name
+        ,last_name
+        ,username
+        ,correct_bets_week
+        ,week_number
+        ,rank_number
+        FROM weekly_rankings
+        WHERE
+        chat_id = $1
+        AND 
+                week_number = (SELECT MAX(week_number)
+                                FROM weekly_rankings
+                                WHERE chat_id = $1
+                                AND start_date AT TIME ZONE 'EST' <= NOW() AT TIME ZONE 'EST' - INTERVAL '1 DAYS')
+        ORDER BY correct_bets_week DESC;
+
+        "#,
+        chat_id
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let finished_games = number_of_finished_games_week(pool, chat_id).await?;
+
+
+    let week_number;
+    let week_number_raw = &ranking_query.get(0);
+    if week_number_raw.is_none() {
+        cx.answer_str("You can see the standings tomorrow after your first round of games is finished.\nAlso, make sure to answer at least one poll to see the standings!").await?;
+        return Ok(())
+    } else {
+         week_number = week_number_raw.unwrap().week_number.unwrap_or(-1);
+    }
+    let mut rankings = 
+        format!("Week {week_number}\nYou get one point for every correct bet\n\nRank |          Name          |    Points\n--- --- --- --- --- --- --- --- --- --\n",
+            week_number = 
+            week_number);
+
+    for record in ranking_query {
+        let first_name = record.first_name.unwrap_or_else(|| "X".to_string());
+        let mut spacing = String::from("");
+
+        if let len @ 0..=13 = first_name.len() {
+            for _ in 0..(13 - len) {
+                spacing.push('\t')
+            }
+        }
+        rankings.push_str(
+            &format!(
+                "    {rank}    | {spacing} {first_name} {spacing} | \t\t\t\t{correct_bets_week}/{finished_games}\n",
+                rank = record.rank_number.unwrap_or(-1),
+                first_name = first_name,
+                spacing = spacing,
+                finished_games = finished_games,
+                correct_bets_week = record.correct_bets_week.unwrap_or(-1)
+            )
+            .as_str(),
+        );
+    }
+
+    cx.answer(&rankings).send().await?;
+
+    Ok(())
+}
+
 
 #[derive(Debug)]
 pub struct Game {
