@@ -6,16 +6,8 @@ Bugs:
 	- running should be independent of ini file location 
 
 Features:
-	- send out results for a specific week -> inline keyboard (Prio 1)
-		- ask user for which week he wants to see results, Number from 1 to max_week_for_chat
-		- check user input for validity in SendSpecificWeekState:
-			- valid: 
-				- if week exists send week results
-				- else: send message that week X has not been played yet
-			- invalid:
-				- send message: "Please send me a valid number from 1 to MAX(WEEK)"
 	- show fraction of correct bets overall
-	- automatically send out weekly results
+	- automatically send out weekly results [Prio 2]
 	- add more modes 
 		- Europe mode?
 	- always include certain teams in bets
@@ -28,3 +20,12 @@ Done:
 		- send final standings to chat and delete polls, bets, ... and chat  
 	- when bot is removed from group chat and tries to send weekly polls it 
 	  could crash[FIXED]
+	  - send out results for a specific week -> inline keyboard (Prio 1) [DONE]
+		- ask user for which week he wants to see results, Number from 1 to max_week_for_chat
+		- check user input for validity in SendSpecificWeekState:
+			- valid: 
+				- if week exists send week results
+				- else: send message that week X has not been played yet
+			- invalid:
+				- send message: "Please send me a valid number from 1 to MAX(WEEK)"
+
