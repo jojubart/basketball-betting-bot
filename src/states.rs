@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 pub enum Dialogue {
     Stop(StopState),
     Ready(ReadyState),
+    WeekResults(WeekInputState),
 }
 
 impl Default for Dialogue {
@@ -19,3 +20,8 @@ pub struct StopState;
 
 #[derive(Serialize, Deserialize)]
 pub struct ReadyState;
+
+#[derive(Serialize, Deserialize)]
+pub struct WeekInputState {
+    pub max_week_number: i32,
+}

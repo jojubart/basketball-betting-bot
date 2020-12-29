@@ -3,8 +3,8 @@ use crate::*;
 use basketball_betting_bot::{
     get_active_chat_status,
     utils::{
-        change_active_chat_status, chat_is_known, remove_chat, send_polls, show_complete_rankings,
-        show_week_rankings, user_is_admin,
+        change_active_chat_status, chat_is_known, get_bet_week, remove_chat, send_polls,
+        show_complete_rankings, show_week_rankings, user_is_admin,
     },
 };
 use sqlx::postgres::PgPool;
@@ -77,7 +77,7 @@ You play against the other members of your group and the winner is the one who w
 
         "/standings" | "/standings@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
-            show_week_rankings(&cx, &pool, chat_id)
+            show_week_rankings(&cx, &pool, chat_id, -1)
                 .await
                 .unwrap_or_default();
         }
@@ -100,6 +100,46 @@ YOU CAN'T UNDO THIS ACTION AND ALL YOUR BETS AND RESULTS ARE LOST!",
             } else {
                 cx.answer_str("Only the group admins can stop the season!")
                     .await?;
+            }
+        }
+        "/week_standings" | "/week_standings@BasketballBettingBot" => {
+            let chat_id = cx.update.chat_id();
+            let bet_week = get_bet_week(&pool, chat_id).await;
+
+            match bet_week {
+                Err(e) => {
+                    dbg!(e);
+                    cx.answer_str("Sorry, could not send standings right now!")
+                        .await?;
+                }
+                Ok(bet_week) => {
+                    let max_week = bet_week.week_number;
+                    match max_week {
+                        1 => {
+                            cx.answer_str("You haven't played more than one week yet!\nHere are the standings for that week:")
+                                .await?;
+                            show_week_rankings(&cx, &pool, chat_id, 1)
+                                .await
+                                .unwrap_or_default();
+                        }
+                        _ => {
+                            let mut week_options = String::from("");
+                            for week in 1..=max_week {
+                                week_options.push_str(
+                                    format!("/{week_number} ", week_number = week).as_str(),
+                                )
+                            }
+                            cx.answer_str(format!(
+                                "Click on the week that you want to show the results for!\n{week_options}",
+                                week_options=week_options
+                            ))
+                            .await?;
+                            return next(WeekInputState {
+                                max_week_number: max_week,
+                            });
+                        }
+                    }
+                }
             }
         }
         "/sage" | "/sage@BasketballBettingBot" => {
@@ -152,7 +192,7 @@ async fn stop_season(_state: StopState, cx: TransitionIn, ans: String) -> Transi
     }
     match ans.as_str() {
         "/end_my_season" => {
-            show_week_rankings(&cx, &pool, chat_id)
+            show_week_rankings(&cx, &pool, chat_id, -1)
                 .await
                 .unwrap_or_default();
             show_complete_rankings(&cx, &pool, chat_id)
@@ -163,6 +203,44 @@ async fn stop_season(_state: StopState, cx: TransitionIn, ans: String) -> Transi
         }
         _ => {
             cx.answer_str("The season continues!").await?;
+        }
+    }
+    next(ReadyState)
+}
+
+#[teloxide(subtransition)]
+async fn send_week_results(
+    state: WeekInputState,
+    cx: TransitionIn,
+    ans: String,
+) -> TransitionOut<Dialogue> {
+    dbg!("WeekInputState");
+    let pool = PgPool::connect(
+        &env::var("DATABASE_URL").expect("Could not find DATABASE_URL environment variable!"),
+    )
+    .await;
+
+    if let Err(e) = pool {
+        dbg!(e);
+        return next(ReadyState);
+    }
+    let pool = pool.expect("Could not establish DB connection!");
+
+    let week_number = ans.strip_prefix("/").unwrap_or("-1").parse::<i32>();
+    let max_week = state.max_week_number;
+    match week_number {
+        Ok(week_number) => {
+            if week_number <= max_week && week_number >= 1 {
+                show_week_rankings(&cx, &pool, cx.update.chat_id(), week_number)
+                    .await
+                    .unwrap_or_default();
+            } else {
+                cx.answer_str("You haven't played that week number yet!")
+                    .await?;
+            }
+        }
+        _ => {
+            cx.answer_str("Please enter a valid number").await?;
         }
     }
     next(ReadyState)

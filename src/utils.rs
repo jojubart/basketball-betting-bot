@@ -120,7 +120,7 @@ async fn _update_bet_week(pool: &PgPool, bet_week_id: i32) -> anyhow::Result<()>
     Ok(())
 }
 
-async fn get_bet_week(pool: &PgPool, chat_id: i64) -> Result<BetWeek, Error> {
+pub async fn get_bet_week(pool: &PgPool, chat_id: i64) -> Result<BetWeek, Error> {
     let row = sqlx::query!(
         r#"SELECT 
         id,
@@ -402,7 +402,7 @@ pub async fn stop_poll(pool: &PgPool, bot: &teloxide::Bot) -> Result<(), Error> 
     Ok(())
 }
 
-pub async fn number_of_finished_games_week(pool: &PgPool, chat_id: i64) -> Result<u8, Error> {
+pub async fn number_of_finished_games_week(pool: &PgPool, chat_id: i64, week_number: i32) -> Result<u8, Error> {
     let row = sqlx::query!(
         r#"
         SELECT 
@@ -412,10 +412,10 @@ pub async fn number_of_finished_games_week(pool: &PgPool, chat_id: i64) -> Resul
             JOIN bet_weeks ON bet_weeks.id = polls.bet_week_id
         WHERE
             games.date_time AT TIME ZONE 'EST' <= NOW() AT TIME ZONE 'EST' - interval '6 hours' 
-            AND bet_weeks.end_date AT TIME ZONE 'EST' >= NOW() AT TIME ZONE 'EST'
-            AND bet_weeks.start_date AT TIME ZONE 'EST' <= NOW() AT TIME ZONE 'EST'
-            AND polls.chat_id = $1;
+            AND bet_weeks.week_number = $1
+            AND polls.chat_id = $2;
         "#,
+        week_number,
         chat_id
     )
     .fetch_optional(pool)
@@ -653,16 +653,16 @@ pub async fn show_complete_rankings(cx: &UpdateWithCx<Message>, pool: &PgPool, c
 
    Ok(())
 
-
-
 }
 
 pub async fn show_week_rankings(
     cx: &UpdateWithCx<Message>,
     pool: &PgPool,
     chat_id: i64,
+    week_number: i32
 ) -> Result<(), Error> {
-    let ranking_query = sqlx::query!(
+    let ranking_query = 
+        sqlx::query!(
         r#"
         SELECT first_name
         ,last_name
@@ -683,10 +683,36 @@ pub async fn show_week_rankings(
         "#,
         chat_id
     )
-    .fetch_all(pool)
-    .await?;
+    .fetch_all(pool);
 
-    let finished_games = number_of_finished_games_week(pool, chat_id).await?;
+    if week_number != -1 {
+     let ranking_query = sqlx::query!(
+
+
+        
+        r#"
+        SELECT first_name
+        ,last_name
+        ,username
+        ,correct_bets_week
+        ,week_number
+        ,rank_number
+        FROM weekly_rankings
+        WHERE
+        chat_id = $1
+        AND 
+                week_number = $2
+        ORDER BY correct_bets_week DESC;
+
+        "#,
+        chat_id,
+        week_number
+    )
+    .fetch_all(pool)
+    ;
+    }
+
+    let ranking_query = ranking_query.await?;
 
 
     let week_number;
@@ -697,6 +723,8 @@ pub async fn show_week_rankings(
     } else {
          week_number = week_number_raw.unwrap().week_number.unwrap_or(-1);
     }
+
+    let finished_games = number_of_finished_games_week(pool, chat_id, week_number).await?;
     let mut rankings = 
         format!("Week {week_number}\nYou get one point for every correct bet\n\nRank |          Name          |    Points\n--- --- --- --- --- --- --- --- --- --\n",
             week_number = 
@@ -729,7 +757,6 @@ pub async fn show_week_rankings(
     Ok(())
 }
 
-
 #[derive(Debug)]
 pub struct Game {
     id: i32,
@@ -743,10 +770,10 @@ pub struct Game {
 }
 
 #[derive(Debug)]
-struct BetWeek {
-    id: i32,
-    week_number: i32,
-    start_date: chrono::NaiveDate,
-    end_date: chrono::NaiveDate,
-    polls_sent: bool,
+pub struct BetWeek {
+    pub id: i32,
+    pub week_number: i32,
+    pub start_date: chrono::NaiveDate,
+    pub end_date: chrono::NaiveDate,
+    pub polls_sent: bool,
 }
