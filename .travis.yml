@@ -7,7 +7,7 @@ install:
     - rustup component add rustfmt-preview
     - rustup component add clippy-preview
 before_script:
-  - psql -c 'create database travis_ci_test;' -U postgres
+  - psql -c 'create database basketball_betting_bot;' -U postgres
 script:
     - cargo test
     - cargo fmt -- --check
