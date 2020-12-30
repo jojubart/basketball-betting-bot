@@ -90,7 +90,6 @@ async fn handle_poll_answer(
                 .user
                 .language_code
                 .unwrap_or_else(|| "en".to_string()),
-            chat_id,
         )
         .await?;
     }

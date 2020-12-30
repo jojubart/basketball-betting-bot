@@ -615,7 +615,6 @@ pub async fn add_user(
     last_name: String,
     username: String,
     language_code: String,
-    chat_id: i64,
 ) -> Result<(), Error> {
     sqlx::query!(
         r#"
