@@ -32,7 +32,7 @@ async fn main() -> anyhow::Result<()> {
             .unwrap_or_default();
 
         // don't send polls in the middle of the night in USA and Europe
-        if chrono::Utc::now().hour() >= 19 {
+        if chrono::Utc::now().hour() >= 18 {
             for chat_id in chats {
                 let poll_sent_success = send_polls(&pool, chat_id.id, &bot).await;
 

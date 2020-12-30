@@ -74,8 +74,6 @@ pub async fn send_polls(pool: &PgPool, chat_id: i64, bot: &teloxide::Bot) -> any
         for game in &games {
             send_game(&pool, game.id, chat_id, game, &bot, bet_week_id).await?;
         }
-
-        //update_bet_week(pool, bet_week.id).await?;
     }
     Ok(())
 }
@@ -227,7 +225,7 @@ async fn send_game(
 }
 
 pub async fn poll_is_in_db(pool: &PgPool, game_id: i32, chat_id: i64) -> Result<bool, Error> {
-     sqlx::query!(
+    sqlx::query!(
         r#"
         SELECT EXISTS(
             SELECT * 
@@ -242,7 +240,8 @@ pub async fn poll_is_in_db(pool: &PgPool, game_id: i32, chat_id: i64) -> Result<
     )
     .fetch_one(pool)
     .await?
-    .exists.ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
+    .exists
+    .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
 }
 
 pub async fn poll_is_in_db_by_poll_id(pool: &PgPool, poll_id: String) -> Result<bool, Error> {
@@ -402,13 +401,19 @@ pub async fn stop_poll(pool: &PgPool, bot: &teloxide::Bot) -> Result<(), Error> 
     Ok(())
 }
 
-pub async fn show_all_bets_season(pool: &PgPool,cx: &UpdateWithCx<Message>, chat_id: i64) -> Result<(), Error> {
+pub async fn show_all_bets_season(
+    pool: &PgPool,
+    cx: &UpdateWithCx<Message>,
+    chat_id: i64,
+) -> Result<(), Error> {
     let ranking_query = sqlx::query!(
         "SELECT * from correct_bets_season WHERE chat_id = $1 ORDER BY rank_number ASC",
-        chat_id).fetch_all(pool).await?;
+        chat_id
+    )
+    .fetch_all(pool)
+    .await?;
 
-    let mut rankings = 
-        String::from("All Bets (include the ongoing week)\n\nRank |          Name          |    Correct Bets\n--- --- --- --- --- --- --- --- --- --- ---\n",
+    let mut rankings = String::from("All Bets (include the ongoing week)\n\nRank |          Name          |    Correct Bets\n--- --- --- --- --- --- --- --- --- --- ---\n",
             );
 
     for record in ranking_query {
@@ -436,10 +441,13 @@ pub async fn show_all_bets_season(pool: &PgPool,cx: &UpdateWithCx<Message>, chat
     cx.answer(&rankings).send().await?;
 
     Ok(())
-
 }
 
-pub async fn number_of_finished_games_week(pool: &PgPool, chat_id: i64, week_number: i32) -> Result<u8, Error> {
+pub async fn number_of_finished_games_week(
+    pool: &PgPool,
+    chat_id: i64,
+    week_number: i32,
+) -> Result<u8, Error> {
     let row = sqlx::query!(
         r#"
         SELECT 
@@ -560,8 +568,7 @@ pub async fn bet_to_team_id(pool: &PgPool, bet: i32, game_id: i32) -> Result<i32
         .fetch_one(pool)
         .await?
         .away_team
-        .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
-        ,
+        .ok_or(Error::SQLxError(sqlx::Error::RowNotFound)),
         1 => sqlx::query!(
             r#"
             SELECT home_team FROM games WHERE id = $1;
@@ -594,12 +601,11 @@ pub async fn get_chat_id_game_id_from_poll(
 }
 
 pub async fn user_is_in_db(pool: &PgPool, user_id: i64) -> Result<bool, Error> {
-        sqlx::query!("SELECT EXISTS(SELECT * FROM users WHERE id = $1)", user_id)
-            .fetch_one(pool)
-            .await?
-            .exists
-            .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
-
+    sqlx::query!("SELECT EXISTS(SELECT * FROM users WHERE id = $1)", user_id)
+        .fetch_one(pool)
+        .await?
+        .exists
+        .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
 }
 
 pub async fn add_user(
@@ -623,7 +629,8 @@ pub async fn add_user(
         language_code,
     )
     .execute(pool)
-    .await.unwrap_or_default();
+    .await
+    .unwrap_or_default();
 
     sqlx::query!(
         r#"
@@ -634,12 +641,17 @@ pub async fn add_user(
         user_id
     )
     .execute(pool)
-    .await.unwrap_or_default();
+    .await
+    .unwrap_or_default();
 
     Ok(())
 }
 
-pub async fn show_complete_rankings(cx: &UpdateWithCx<Message>, pool: &PgPool, chat_id: i64) -> Result<(), Error> {
+pub async fn show_complete_rankings(
+    cx: &UpdateWithCx<Message>,
+    pool: &PgPool,
+    chat_id: i64,
+) -> Result<(), Error> {
     let ranking_query = sqlx::query!(
         r#"
         SELECT 
@@ -662,8 +674,8 @@ pub async fn show_complete_rankings(cx: &UpdateWithCx<Message>, pool: &PgPool, c
 
     ).fetch_all(pool).await?;
 
-    let mut rankings = 
-        String::from("Standings (include the ongoing week)\n\nRank |          Name          |    Weeks Won\n--- --- --- --- --- --- --- --- --- --- ---\n",
+    let mut rankings = String::from(
+        "Standings (include the ongoing week)\n\nRank |          Name          |    Weeks Won\n--- --- --- --- --- --- --- --- --- --- ---\n",
             );
 
     for record in ranking_query {
@@ -689,18 +701,16 @@ pub async fn show_complete_rankings(cx: &UpdateWithCx<Message>, pool: &PgPool, c
 
     cx.answer(&rankings).send().await?;
 
-   Ok(())
-
+    Ok(())
 }
 
 pub async fn show_week_rankings(
     cx: &UpdateWithCx<Message>,
     pool: &PgPool,
     chat_id: i64,
-    week_number: i32
+    week_number: i32,
 ) -> Result<(), Error> {
-    let ranking_query = 
-        sqlx::query!(
+    let ranking_query = sqlx::query!(
         r#"
         SELECT first_name
         ,last_name
@@ -724,10 +734,9 @@ pub async fn show_week_rankings(
     .fetch_all(pool);
 
     if week_number != -1 {
-    #[allow(unused_variables)] // variable is not unused - suppress warning
-     let ranking_query = sqlx::query!(
-        
-        r#"
+        #[allow(unused_variables)] // variable is not unused - suppress warning
+        let ranking_query = sqlx::query!(
+            r#"
         SELECT first_name
         ,last_name
         ,username
@@ -742,30 +751,26 @@ pub async fn show_week_rankings(
         ORDER BY correct_bets_week DESC;
 
         "#,
-        chat_id,
-        week_number
-    )
-    .fetch_all(pool)
-    ;
+            chat_id,
+            week_number
+        )
+        .fetch_all(pool);
     }
 
     let ranking_query = ranking_query.await?;
-
 
     let week_number;
     let week_number_raw = &ranking_query.get(0);
     if week_number_raw.is_none() {
         cx.answer_str("You can see the standings tomorrow after your first round of games is finished.\nAlso, make sure to answer at least one poll to see the standings!").await?;
-        return Ok(())
+        return Ok(());
     } else {
-         week_number = week_number_raw.unwrap().week_number.unwrap_or(-1);
+        week_number = week_number_raw.unwrap().week_number.unwrap_or(-1);
     }
 
     let finished_games = number_of_finished_games_week(pool, chat_id, week_number).await?;
-    let mut rankings = 
-        format!("Week {week_number}\nYou get one point for every correct bet\n\nRank |          Name          |    Points\n--- --- --- --- --- --- --- --- --- --\n",
-            week_number = 
-            week_number);
+    let mut rankings = format!("Week {week_number}\nYou get one point for every correct bet\n\nRank |          Name          |    Points\n--- --- --- --- --- --- --- --- --- --\n",
+            week_number = week_number);
 
     for record in ranking_query {
         let first_name = record.first_name.unwrap_or_else(|| "X".to_string());

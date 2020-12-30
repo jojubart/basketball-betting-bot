@@ -1,0 +1,16 @@
+language: rust
+rust:
+  - stable
+  - beta
+  - nightly
+install:
+    - rustup component add rustfmt-preview
+    - rustup component add clippy-preview
+script:
+    - cargo test
+    - cargo fmt -- --check
+    - cargo clippy -- -D warnings
+jobs:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
