@@ -1,4 +1,4 @@
-use basketball_betting_bot::{get_token, Error};
+use basketball_betting_bot::Error;
 use std::collections::HashMap;
 mod scrape;
 use basketball_betting_bot::utils::*;
@@ -16,9 +16,7 @@ async fn main() -> anyhow::Result<()> {
     for month in scraped_months {
         scrape_games(month).await?;
     }
-    let token = get_token("../config.ini");
-    #[allow(deprecated)]
-    let bot = Bot::new(&token);
+    let bot = Bot::builder().build();
     let pool = PgPool::connect(
         &env::var("DATABASE_URL").expect("Could not find environment variable DATABASE_URL"),
     )

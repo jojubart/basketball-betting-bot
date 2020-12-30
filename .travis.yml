@@ -7,7 +7,9 @@ install:
     - rustup component add rustfmt-preview
     - rustup component add clippy-preview
 before_script:
-  - psql -c 'create database basketball_betting_bot;' -U postgres
+  - cargo install --version=0.2.0 sqlx-cli
+  - sqlx db create
+  - sqlx migrate run
 script:
     - cargo test
     - cargo fmt -- --check

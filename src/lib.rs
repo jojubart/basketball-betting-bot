@@ -2,7 +2,6 @@ pub mod utils;
 use sqlx::postgres::PgPool;
 
 extern crate derive_more;
-use ini::Ini;
 use teloxide::RequestError;
 use thiserror::Error;
 
@@ -18,16 +17,6 @@ pub enum Error {
     ReqwestError(#[from] reqwest::Error),
     #[error("error from chrono: {0}")]
     ChronoError(#[from] chrono::ParseError),
-}
-
-pub fn get_token(file_location: &str) -> String {
-    let conf = Ini::load_from_file(file_location).expect("No .ini file found!");
-    let token = conf
-        .section(Some("Bot"))
-        .expect("There is not 'Bot' Section in the .ini file!")
-        .get("token")
-        .expect("No token found!");
-    token.to_string()
 }
 
 pub fn east_coast_date_today() -> Result<chrono::NaiveDate, Error> {

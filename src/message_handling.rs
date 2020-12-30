@@ -1,12 +1,10 @@
 use basketball_betting_bot::{
-    get_token,
     utils::{
         add_bet, add_user, bet_to_team_id, get_chat_id_game_id_from_poll, poll_is_in_db_by_poll_id,
         user_is_in_db,
     },
     Error,
 };
-use lazy_static::lazy_static;
 use sqlx::postgres::PgPool;
 use std::{convert::Infallible, env};
 use teloxide::prelude::*;
@@ -14,16 +12,13 @@ use teloxide::prelude::*;
 use crate::states::Dialogue;
 
 type In = DialogueWithCx<Message, Dialogue, Infallible>;
-lazy_static! {
-    static ref BOT_TOKEN: String = get_token("../config.ini");
-}
 
 pub async fn run() {
     teloxide::enable_logging!();
     log::info!("Starting the bot!");
 
     #[allow(deprecated)]
-    let bot = Bot::new(BOT_TOKEN.to_owned());
+    let bot = Bot::builder().build();
 
     Dispatcher::new(bot)
         .messages_handler(DialogueDispatcher::new(
