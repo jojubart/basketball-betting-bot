@@ -13,6 +13,8 @@ Features:
 	- always include certain teams in bets
 	- send top highlight from reddit to chat with /highlight
 	- let users pick time zone (Prio 1)
+	- Cache queries 
+	- self-host DB: https://www.reddit.com/r/PostgreSQL/comments/9xft16/what_to_considers_before_switching_from_managed/
 
 Done:
 	- stop season (/stop) (PRIO 1) [DONE]

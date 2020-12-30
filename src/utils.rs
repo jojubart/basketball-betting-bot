@@ -302,7 +302,7 @@ async fn get_games(
             ,srs_sum
             ,date_time AT TIME ZONE 'EST' as date_time
             ,DATE(date_time AT TIME ZONE 'EST') AS date
-            ,to_char(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD HH24:MI TZ') AS pretty_time
+            ,to_char(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD HH:MI AM TZ') AS pretty_time
         FROM full_game_information
         WHERE DATE(date_time AT TIME ZONE 'EST') <= $1
         AND DATE(date_time AT TIME ZONE 'EST') >= $2
@@ -320,7 +320,7 @@ async fn get_games(
             ,srs_sum
             ,date_time AT TIME ZONE 'EST' as date_time
             ,DATE(date_time AT TIME ZONE 'EST') AS date
-            ,to_char(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD HH24:MI TZ') AS pretty_time
+            ,to_char(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD HH:MI AM TZ') AS pretty_time
         FROM full_game_information
         WHERE DATE(date_time AT TIME ZONE 'EST') <= $1
         AND DATE(date_time AT TIME ZONE 'EST') >= $2
@@ -411,7 +411,8 @@ pub async fn number_of_finished_games_week(pool: &PgPool, chat_id: i64, week_num
             polls JOIN games ON games.id = polls.game_id
             JOIN bet_weeks ON bet_weeks.id = polls.bet_week_id
         WHERE
-            games.date_time AT TIME ZONE 'EST' <= NOW() AT TIME ZONE 'EST' - interval '6 hours' 
+            home_points > 0
+            AND away_points > 0
             AND bet_weeks.week_number = $1
             AND polls.chat_id = $2;
         "#,
@@ -686,9 +687,8 @@ pub async fn show_week_rankings(
     .fetch_all(pool);
 
     if week_number != -1 {
+    #[allow(unused_variables)] // variable is not unused - suppress warning
      let ranking_query = sqlx::query!(
-
-
         
         r#"
         SELECT first_name
