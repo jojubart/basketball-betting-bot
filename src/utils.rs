@@ -632,18 +632,6 @@ pub async fn add_user(
     .await
     .unwrap_or_default();
 
-    sqlx::query!(
-        r#"
-            INSERT INTO points(chat_id, user_id) VALUES
-            ($1, $2)
-            "#,
-        chat_id,
-        user_id
-    )
-    .execute(pool)
-    .await
-    .unwrap_or_default();
-
     Ok(())
 }
 
