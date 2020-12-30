@@ -39,12 +39,12 @@ CREATE TABLE IF NOT EXISTS chats (
 
 );
 
-CREATE TABLE IF NOT EXISTS points(
-	id serial PRIMARY KEY
-	,chat_id BIGINT REFERENCES chats(id)
-	,user_id BIGINT REFERENCES users(id)
-	,points INTEGER DEFAULT 0
-);
+--CREATE TABLE IF NOT EXISTS points(
+--	id serial PRIMARY KEY
+--	,chat_id BIGINT REFERENCES chats(id)
+--	,user_id BIGINT REFERENCES users(id)
+--	,points INTEGER DEFAULT 0
+--);
 
 CREATE TABLE IF NOT EXISTS teams (
 	id serial PRIMARY KEY
@@ -107,27 +107,26 @@ CREATE TABLE IF NOT EXISTS bets (
 
 
 
---DROP VIEW rankings;
-CREATE OR REPLACE VIEW rankings AS 
-	SELECT
-		users.id AS user_id
-		,users.first_name AS first_name
-		,users.last_name AS last_name
-		,users.username AS username
-		,chats.id AS chat_id
-		,points.points 
-		,RANK() OVER (
-			PARTITION BY chat_id
-			ORDER BY points DESC
-		) rank_number
-		
-	FROM
-		users
-		JOIN 
-		points ON users.id = points.user_id
-		JOIN
-		chats ON points.chat_id = chats.id
-;
+--CREATE OR REPLACE VIEW rankings AS 
+--	SELECT
+--		users.id AS user_id
+--		,users.first_name AS first_name
+--		,users.last_name AS last_name
+--		,users.username AS username
+--		,chats.id AS chat_id
+--		,points.points 
+--		,RANK() OVER (
+--			PARTITION BY chat_id
+--			ORDER BY points DESC
+--		) rank_number
+--		
+--	FROM
+--		users
+--		JOIN 
+--		points ON users.id = points.user_id
+--		JOIN
+--		chats ON points.chat_id = chats.id
+--;
 			
 CREATE OR REPLACE VIEW full_game_information AS
 	SELECT 
@@ -274,6 +273,36 @@ JOIN
 	ON users.id = tmp.id
 ;
 
+CREATE OR REPLACE VIEW correct_bets_season AS
+SELECT 
+	correct_bets.user_id
+	,first_name
+	,last_name
+	,username
+	,correct_bets.chat_id
+	,finished_games
+	,COUNT(*) AS correct_bets_total
+	,RANK() OVER (
+		PARTITION BY correct_bets.chat_id
+		ORDER BY COUNT(*) DESC) AS rank_number
+	
+FROM correct_bets
+JOIN 
+	(SELECT 
+        COUNT(*) AS finished_games
+		,bet_weeks.chat_id
+        FROM
+            polls JOIN games ON games.id = polls.game_id
+            JOIN bet_weeks ON bet_weeks.id = polls.bet_week_id
+        WHERE
+            home_points > 0
+            AND away_points > 0
+		GROUP BY bet_weeks.chat_id) all_games
+	ON correct_bets.chat_id = all_games.chat_id
+
+JOIN users ON users.id = correct_bets.user_id
+GROUP BY user_id, first_name, last_name, username, correct_bets.chat_id, finished_games
+;
 
 
 ALTER DATABASE postgres SET timezone TO 'America/New_York';

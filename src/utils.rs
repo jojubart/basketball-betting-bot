@@ -402,6 +402,43 @@ pub async fn stop_poll(pool: &PgPool, bot: &teloxide::Bot) -> Result<(), Error> 
     Ok(())
 }
 
+pub async fn show_all_bets_season(pool: &PgPool,cx: &UpdateWithCx<Message>, chat_id: i64) -> Result<(), Error> {
+    let ranking_query = sqlx::query!(
+        "SELECT * from correct_bets_season WHERE chat_id = $1 ORDER BY rank_number ASC",
+        chat_id).fetch_all(pool).await?;
+
+    let mut rankings = 
+        String::from("All Bets (include the ongoing week)\n\nRank |          Name          |    Correct Bets\n--- --- --- --- --- --- --- --- --- --- ---\n",
+            );
+
+    for record in ranking_query {
+        let first_name = record.first_name.unwrap_or_else(|| "X".to_string());
+        let mut spacing = String::from("");
+
+        if let len @ 0..=13 = first_name.len() {
+            for _ in 0..(13 - len) {
+                spacing.push('\t')
+            }
+        }
+        rankings.push_str(
+            &format!(
+                "    {rank}    | {spacing} {first_name} {spacing} | \t\t\t\t\t\t{correct_bets_total}/{finished_games}\n",
+                rank = record.rank_number.unwrap_or(-1),
+                first_name = first_name,
+                spacing = spacing,
+                finished_games = record.finished_games.unwrap_or(-1),
+                correct_bets_total = record.correct_bets_total.unwrap_or(-1)
+            )
+            .as_str(),
+        );
+    }
+
+    cx.answer(&rankings).send().await?;
+
+    Ok(())
+
+}
+
 pub async fn number_of_finished_games_week(pool: &PgPool, chat_id: i64, week_number: i32) -> Result<u8, Error> {
     let row = sqlx::query!(
         r#"

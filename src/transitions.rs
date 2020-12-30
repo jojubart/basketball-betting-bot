@@ -4,7 +4,7 @@ use basketball_betting_bot::{
     get_active_chat_status,
     utils::{
         change_active_chat_status, chat_is_known, get_bet_week, remove_chat, send_polls,
-        show_complete_rankings, show_week_rankings, user_is_admin,
+        show_all_bets_season, show_complete_rankings, show_week_rankings, user_is_admin,
     },
 };
 use sqlx::postgres::PgPool;
@@ -84,6 +84,13 @@ You play against the other members of your group and the winner is the one who w
         "/full_standings" | "/full_standings@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
             show_complete_rankings(&cx, &pool, chat_id)
+                .await
+                .unwrap_or_default();
+        }
+
+        "/all_bets" | "/all_bets@BasketballBettingBot" => {
+            let chat_id = cx.update.chat_id();
+            show_all_bets_season(&pool, &cx, chat_id)
                 .await
                 .unwrap_or_default();
         }
