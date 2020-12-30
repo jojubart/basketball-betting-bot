@@ -14,6 +14,7 @@ script:
     - cargo test
     - cargo fmt -- --check
     - cargo clippy -- -D warnings
+    - cd scheduled_tasks && cargo test && cargo fmt -- --check && cargo clippy -- -D warnings
 jobs:
   allow_failures:
     - rust: nightly

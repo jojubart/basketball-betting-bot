@@ -1,11 +1,10 @@
 [commands]
-start - Start your season! (wait until everyone who wants to participate was added to this group)
+start - Start your season! (wait until everyone who wants to participate was added to the group)
 standings - Shows ranking for current week
-full_standings - Shows ranking for the whole season
-sage - Cleanse the chat from toxic energy
-stop_season - End the betting season and receive final standings. THIS CAN'T BE UNDONE!
+full_standings - Shows weekly ranking for the whole season
+all_bets - Show fraction of correct bets over the season (Alternative to weekly standings)
 week_standings - Show standings for a specified week
-all_bets - Show fraction of correct bets over the season
+stop_season - End the betting season and receive final standings. THIS CAN'T BE UNDONE!
 
 [description]
 BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. The one who gets the most games right in a week gets one point.

@@ -168,8 +168,24 @@ YOU CAN'T UNDO THIS ACTION AND ALL YOUR BETS AND RESULTS ARE LOST!",
 You play against the other members of your group and the winner is the one who wins the most weeks.
 Once everyone who wants to participate is in this group, send /start to begin if you haven't done so already!
 
-/standings to see who's the GOAT bettor this week.
-/sage to cleanse the energy of this chat"#).await?;
+/start - Start your season! (wait until everyone who wants to participate was added to the group)
+
+/standings - Shows ranking for current week
+
+/full_standings - Shows weekly ranking for the whole season
+
+/all_bets - Show fraction of correct bets over the season 
+(Alternative to weekly standings)
+
+/week_standings - Show standings for a specified week
+
+/sage - Cleanse the chat from toxic energy
+
+/stop_season - End the betting season and receive final standings.
+THIS CAN'T BE UNDONE!
+
+
+"#).await?;
         }
         _ => (),
     }
@@ -203,6 +219,9 @@ async fn stop_season(_state: StopState, cx: TransitionIn, ans: String) -> Transi
                 .await
                 .unwrap_or_default();
             show_complete_rankings(&cx, &pool, chat_id)
+                .await
+                .unwrap_or_default();
+            show_all_bets_season(&pool, &cx, chat_id)
                 .await
                 .unwrap_or_default();
             remove_chat(&pool, chat_id).await.unwrap_or_default();
