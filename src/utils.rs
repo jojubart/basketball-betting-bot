@@ -52,24 +52,26 @@ pub async fn send_polls(pool: &PgPool, chat_id: i64, bot: &teloxide::Bot) -> any
             .await
             .expect("Could not get number of games");
 
-        let games = get_games(
-            &pool,
-            number_of_games,
-            bet_week.start_date,
-            bet_week.end_date,
-        )
-        .await
-        .unwrap();
-
         let bet_week_id = insert_bet_week(
             pool,
             chat_id,
             week_number,
-            east_coast_date_in_x_days(1, false).unwrap(),
-            east_coast_date_in_x_days(7, false).unwrap(),
+            east_coast_date_in_x_days(1, false)?,
+            east_coast_date_in_x_days(7, false)?,
             true,
         )
         .await?;
+
+        let bet_week_new = get_bet_week(pool, chat_id).await?;
+
+        let games = get_games(
+            &pool,
+            number_of_games,
+            bet_week_new.start_date,
+            bet_week_new.end_date,
+        )
+        .await
+        .unwrap_or_default();
 
         for game in &games {
             send_game(&pool, game.id, chat_id, game, &bot, bet_week_id).await?;
