@@ -40,13 +40,13 @@ fn east_coast_date_in_x_days(days: i64, past: bool) -> Result<chrono::NaiveDate,
 }
 pub async fn send_polls(pool: &PgPool, chat_id: i64, bot: &teloxide::Bot) -> anyhow::Result<()> {
     let bet_week = get_bet_week(pool, chat_id).await?;
-    let today = east_coast_date_today()?;
+    let tomorrow = east_coast_date_in_x_days(1, false)?;
 
     // if week_number is 0 it's the first time polls are sent to the chat
     // that means we have not entry yet for the chat in bet_weeks and want to send the polls for
     // the upcoming week right away
     // if today is the last day of a bet_week, we want to send out new polls for the upcoming week
-    if bet_week.week_number == 0 || today >= bet_week.end_date {
+    if bet_week.week_number == 0 || tomorrow >= bet_week.end_date {
         let week_number = bet_week.week_number + 1;
         let number_of_games = get_number_of_games_for_chat(&pool, chat_id)
             .await
