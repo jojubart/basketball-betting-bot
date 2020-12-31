@@ -62,13 +62,11 @@ pub async fn send_polls(pool: &PgPool, chat_id: i64, bot: &teloxide::Bot) -> any
         )
         .await?;
 
-        let bet_week_new = get_bet_week(pool, chat_id).await?;
-
         let games = get_games(
             &pool,
             number_of_games,
-            bet_week_new.start_date,
-            bet_week_new.end_date,
+            east_coast_date_in_x_days(1, false)?,
+            east_coast_date_in_x_days(7, false)?,
         )
         .await
         .unwrap_or_default();
