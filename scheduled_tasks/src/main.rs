@@ -34,7 +34,7 @@ async fn main() -> anyhow::Result<()> {
         if Utc::now().hour() >= 18 && Utc::now().hour() <= 19 {
             let games = get_games(
                 &pool,
-                11,
+                10,
                 east_coast_date_in_x_days(1, false)?,
                 east_coast_date_in_x_days(7, false)?,
             )

@@ -71,7 +71,7 @@ You play against the other members of your group and the winner is the one who w
             cx.answer_str("Your season begins now!").await?;
             let games = get_games(
                 &pool,
-                11,
+                10,
                 east_coast_date_in_x_days(1, false).unwrap(),
                 east_coast_date_in_x_days(7, false).unwrap(),
             )

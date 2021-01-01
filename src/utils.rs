@@ -203,10 +203,11 @@ async fn send_game(
             .send_poll(
                 chat_id,
                 format!(
-                    "{away_team} @ {home_team} \n{pretty_time} ET",
+                    "{away_team} @ {home_team} \n{date_string}\n{time_string}",
                     home_team = game.home_team,
                     away_team = game.away_team,
-                    pretty_time = game.pretty_time
+                    date_string = game.date_string,
+                    time_string = game.time_string
                 ),
                 vec![game.away_team.to_string(), game.home_team.to_string()],
             )
@@ -297,46 +298,50 @@ pub async fn get_games(
 ) -> anyhow::Result<Vec<Game>> {
     let games_raw = sqlx::query!(
         r#"
-        SELECT * FROM (
-        (SELECT 
-            game_id
-            ,away_team_id
-            ,away_team
-            ,home_team_id
-            ,home_team
-            ,srs_sum
-            ,date_time AT TIME ZONE 'EST' as date_time
-            ,DATE(date_time AT TIME ZONE 'EST') AS date
-            ,to_char(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD HH:MI AM TZ') AS pretty_time
-        FROM full_game_information
-        WHERE DATE(date_time AT TIME ZONE 'EST') <= $1
-        AND DATE(date_time AT TIME ZONE 'EST') >= $2
-        ORDER BY srs_sum DESC
-        LIMIT $3)
+        (select * from  
+ (SELECT DISTINCT ON (away_team_id, home_team_id) * FROM 
+         (SELECT * FROM  
+         (SELECT  
+             game_id 
+             ,away_team_id 
+             ,away_team 
+             ,home_team_id 
+             ,home_team 
+             ,srs_sum 
+             ,date_time AT TIME ZONE 'EST' as date_time 
+             ,DATE(date_time AT TIME ZONE 'EST') AS date 
+             ,to_char(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD') AS date_string
+             ,to_char(date_time AT TIME ZONE 'EST', 'HH:MI AM TZ') AS time_string
+             ,to_char(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD HH:MI AM TZ') AS pretty_date_time 
+         FROM public.full_game_information 
+         WHERE DATE(date_time AT TIME ZONE 'EST') <= $1 
+         AND DATE(date_time AT TIME ZONE 'EST') >= $2 
+         ORDER BY srs_sum DESC 
+         ) AS tmp ) as tmp2 
+ ) as tmp3
+    ORDER BY srs_sum DESC LIMIT $3) 
+         UNION  
+          
+         (SELECT 
+             game_id 
+             ,away_team_id 
+             ,away_team 
+             ,home_team_id 
+             ,home_team 
+             ,srs_sum 
+             ,date_time AT TIME ZONE 'EST' as date_time 
+             ,DATE(date_time AT TIME ZONE 'EST') AS date 
+             ,to_char(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD') AS date_string
+             ,to_char(date_time AT TIME ZONE 'EST', 'HH:MI AM TZ') AS time_string
+             ,to_char(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD HH:MI AM TZ') AS pretty_date_time 
+         FROM public.full_game_information 
+         WHERE DATE(date_time AT TIME ZONE 'EST') <= $1 
+         AND DATE(date_time AT TIME ZONE 'EST') >= $2 
+         ORDER BY srs_sum ASC 
+         LIMIT 1 
+         ) ORDER BY date_time DESC 
 
-        UNION 
-        
-        (SELECT
-            game_id
-            ,away_team_id
-            ,away_team
-            ,home_team_id
-            ,home_team
-            ,srs_sum
-            ,date_time AT TIME ZONE 'EST' as date_time
-            ,DATE(date_time AT TIME ZONE 'EST') AS date
-            ,to_char(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD HH:MI AM TZ') AS pretty_time
-        FROM full_game_information
-        WHERE DATE(date_time AT TIME ZONE 'EST') <= $1
-        AND DATE(date_time AT TIME ZONE 'EST') >= $2
-        ORDER BY srs_sum ASC
-        LIMIT 1
-        )) 
-         AS games
-        ORDER BY date ASC
-        ;
-
-        "#,
+"#,
         // date a week from now in East Coast time
         end_date,
         // tomorrow's date in East Coast time
@@ -356,7 +361,9 @@ pub async fn get_games(
             home_team: record.home_team.unwrap(),
             srs_sum: record.srs_sum.unwrap(),
             date_time: record.date_time.unwrap(),
-            pretty_time: record.pretty_time.unwrap(),
+            pretty_date_time: record.pretty_date_time.unwrap(),
+            date_string: record.date_string.unwrap(),
+            time_string: record.time_string.unwrap(),
         };
         games.push(game);
     }
@@ -801,7 +808,9 @@ pub struct Game {
     home_team: String,
     srs_sum: BigDecimal,
     date_time: chrono::NaiveDateTime,
-    pretty_time: String,
+    pretty_date_time: String,
+    date_string: String,
+    time_string: String,
 }
 
 #[derive(Debug)]
