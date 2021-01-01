@@ -203,7 +203,7 @@ async fn send_game(
             .send_poll(
                 chat_id,
                 format!(
-                    "{away_team} @ {home_team} \n{date_string}\n{time_string}",
+                    "{away_team} @ {home_team} \n{date_string}\n{time_string} ET",
                     home_team = game.home_team,
                     away_team = game.away_team,
                     date_string = game.date_string,
