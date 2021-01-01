@@ -3,8 +3,9 @@ use crate::*;
 use basketball_betting_bot::{
     get_active_chat_status,
     utils::{
-        change_active_chat_status, chat_is_known, get_bet_week, remove_chat, send_polls,
-        show_all_bets_season, show_complete_rankings, show_week_rankings, user_is_admin,
+        change_active_chat_status, chat_is_known, east_coast_date_in_x_days, get_bet_week,
+        get_games, remove_chat, send_polls, show_all_bets_season, show_complete_rankings,
+        show_week_rankings, user_is_admin,
     },
 };
 use sqlx::postgres::PgPool;
@@ -68,7 +69,16 @@ async fn ready(_state: ReadyState, cx: TransitionIn, ans: String) -> TransitionO
             cx.answer_str(r#"BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. The one who gets the most games right in a week gets one point.
 You play against the other members of your group and the winner is the one who wins the most weeks."#).await?;
             cx.answer_str("Your season begins now!").await?;
-            send_polls(&pool, chat_id, &cx.bot)
+            let games = get_games(
+                &pool,
+                11,
+                east_coast_date_in_x_days(1, false).unwrap(),
+                east_coast_date_in_x_days(7, false).unwrap(),
+            )
+            .await
+            .unwrap_or_default();
+
+            send_polls(&pool, chat_id, &cx.bot, &games)
                 .await
                 .unwrap_or_default();
             dbg!("SEASONS STARTS");

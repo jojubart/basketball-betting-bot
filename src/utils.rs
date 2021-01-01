@@ -16,7 +16,7 @@ fn east_coast_date_today() -> Result<chrono::NaiveDate, Error> {
 }
 
 /// past: describes if you want the day x days in the past (true) or in the future (false)
-fn east_coast_date_in_x_days(days: i64, past: bool) -> Result<chrono::NaiveDate, Error> {
+pub fn east_coast_date_in_x_days(days: i64, past: bool) -> Result<chrono::NaiveDate, Error> {
     let east_coast_datetime = chrono::Utc::now()
         .checked_sub_signed(chrono::Duration::hours(5))
         .unwrap();
@@ -38,7 +38,12 @@ fn east_coast_date_in_x_days(days: i64, past: bool) -> Result<chrono::NaiveDate,
         "%Y-%m-%d",
     )?)
 }
-pub async fn send_polls(pool: &PgPool, chat_id: i64, bot: &teloxide::Bot) -> anyhow::Result<()> {
+pub async fn send_polls(
+    pool: &PgPool,
+    chat_id: i64,
+    bot: &teloxide::Bot,
+    games: &[Game],
+) -> anyhow::Result<()> {
     let bet_week = get_bet_week(pool, chat_id).await?;
     let tomorrow = east_coast_date_in_x_days(1, false)?;
 
@@ -48,9 +53,6 @@ pub async fn send_polls(pool: &PgPool, chat_id: i64, bot: &teloxide::Bot) -> any
     // if today is the last day of a bet_week, we want to send out new polls for the upcoming week
     if bet_week.week_number == 0 || tomorrow >= bet_week.end_date {
         let week_number = bet_week.week_number + 1;
-        let number_of_games = get_number_of_games_for_chat(&pool, chat_id)
-            .await
-            .expect("Could not get number of games");
 
         let bet_week_id = insert_bet_week(
             pool,
@@ -62,16 +64,20 @@ pub async fn send_polls(pool: &PgPool, chat_id: i64, bot: &teloxide::Bot) -> any
         )
         .await?;
 
-        let games = get_games(
-            &pool,
-            number_of_games,
-            east_coast_date_in_x_days(1, false)?,
-            east_coast_date_in_x_days(7, false)?,
-        )
-        .await
-        .unwrap_or_default();
+        //let number_of_games = get_number_of_games_for_chat(&pool, chat_id)
+        //    .await
+        //    .expect("Could not get number of games");
 
-        for game in &games {
+        //let games = get_games(
+        //    &pool,
+        //    number_of_games,
+        //    east_coast_date_in_x_days(1, false)?,
+        //    east_coast_date_in_x_days(7, false)?,
+        //)
+        //.await
+        //.unwrap_or_default();
+
+        for game in games {
             send_game(&pool, game.id, chat_id, game, &bot, bet_week_id).await?;
         }
     }
@@ -168,7 +174,7 @@ pub async fn get_bet_week(pool: &PgPool, chat_id: i64) -> Result<BetWeek, Error>
     }
 }
 
-async fn get_number_of_games_for_chat(pool: &PgPool, chat_id: i64) -> anyhow::Result<i64> {
+async fn _get_number_of_games_for_chat(pool: &PgPool, chat_id: i64) -> anyhow::Result<i64> {
     let number_of_games = sqlx::query!(
         "SELECT number_of_games FROM full_chat_information WHERE chat_id = $1",
         chat_id
@@ -283,7 +289,7 @@ async fn add_poll(
     Ok(())
 }
 
-async fn get_games(
+pub async fn get_games(
     pool: &PgPool,
     number_of_games: i64,
     start_date: chrono::NaiveDate,
