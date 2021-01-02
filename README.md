@@ -22,6 +22,7 @@ The bot can't read your group chat's messages, just the ones starting with an '/
 so don't worry about trash talking him - he won't know. 
 
 **These are the commands he understands:**
+
 - /start - Start your season! (wait until everyone who wants to participate was
 added to the group)
 
@@ -40,6 +41,4 @@ added to the group)
 THIS CAN'T BE UNDONE!
 
 Here's an example of what it looks like:
-![Weekly Bets](./screenshots/weekly_bets.png)
-
-![Weekly Standings](./screenshots/weekly_standings.png)
+<img src="./screenshots/weekly_bets.png" alt="Weekly Bets" style="zoom: 45%;" /><img src="./screenshots/weekly_standings.png" alt="Weekly Standings" style="zoom:50%;" />
