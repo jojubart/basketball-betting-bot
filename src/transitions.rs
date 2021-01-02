@@ -143,7 +143,7 @@ YOU CAN'T UNDO THIS ACTION AND ALL YOUR BETS AND RESULTS ARE LOST!",
                             let mut week_options = String::from("");
                             for week in 1..=max_week {
                                 week_options.push_str(
-                                    format!("/{week_number} ", week_number = week).as_str(),
+                                    format!("/{week_number}\t\t\t", week_number = week).as_str(),
                                 )
                             }
                             cx.answer_str(format!(

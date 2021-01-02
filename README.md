@@ -39,3 +39,7 @@ added to the group)
 - /stop_season - End the betting season and receive final standings.
 THIS CAN'T BE UNDONE!
 
+Here's an example of what it looks like:
+![Weekly Bets](./screenshots/weekly_bets.png)
+
+![Weekly Standings](./screenshots/weekly_standings.png)
