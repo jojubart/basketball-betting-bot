@@ -1,19 +1,15 @@
-- use include_str!() for config.ini file (is it possible to still use as .ini?)
-
-
 Bugs: 
-	- ~change time format to 12 hour time~
-	- running should be independent of ini file location 
+	- ~change time format to 12 hour time~ [FIXED]
+	- running should be independent of ini file location [FIXED]
 
 Features:
-	- show fraction of correct bets overall
+	- Cache daily games -> Listen+Notify Postgres + Redis [Prio 1]
 	- automatically send out weekly results [Prio 2]
 	- add more modes 
 		- Europe mode?
 	- always include certain teams in bets
 	- send top highlight from reddit to chat with /highlight
-	- let users pick time zone (Prio 1)
-	- Cache queries 
+	- let users pick time zone [Prio 2]
 	- self-host DB: https://www.reddit.com/r/PostgreSQL/comments/9xft16/what_to_considers_before_switching_from_managed/
 
 Done:
@@ -31,3 +27,4 @@ Done:
 			- invalid:
 				- send message: "Please send me a valid number from 1 to MAX(WEEK)"
 
+	- show fraction of correct bets overall [DONE]

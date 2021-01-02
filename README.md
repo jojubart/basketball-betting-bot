@@ -10,7 +10,7 @@ The one who gets the most games right in a week gets one point.
 
 You play against the other members of your group chat and the overall winner is
 the one with the most points at the end of the season.
-Thre's also an alternative ranking that's just looking at the total number of
+There's also an alternative ranking that's just looking at the total number of
 bets you guys got right, and doesn't care about weekly wins if that's more
 your style.
 

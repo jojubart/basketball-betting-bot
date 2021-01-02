@@ -722,40 +722,19 @@ pub async fn show_week_rankings(
         WHERE
         chat_id = $1
         AND 
-                week_number = (SELECT MAX(week_number)
+                week_number = CASE WHEN $2 = -1 THEN (SELECT MAX(week_number)
                                 FROM weekly_rankings
                                 WHERE chat_id = $1
                                 AND start_date AT TIME ZONE 'EST' <= NOW() AT TIME ZONE 'EST' - INTERVAL '1 DAYS')
+                                ELSE $2
+                                END
         ORDER BY correct_bets_week DESC;
 
         "#,
         chat_id
+        ,week_number
     )
     .fetch_all(pool);
-
-    if week_number != -1 {
-        #[allow(unused_variables)] // variable is not unused - suppress warning
-        let ranking_query = sqlx::query!(
-            r#"
-        SELECT first_name
-        ,last_name
-        ,username
-        ,correct_bets_week
-        ,week_number
-        ,rank_number
-        FROM weekly_rankings
-        WHERE
-        chat_id = $1
-        AND 
-                week_number = $2
-        ORDER BY correct_bets_week DESC;
-
-        "#,
-            chat_id,
-            week_number
-        )
-        .fetch_all(pool);
-    }
 
     let ranking_query = ranking_query.await?;
 
