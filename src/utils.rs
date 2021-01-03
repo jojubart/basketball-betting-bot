@@ -38,6 +38,16 @@ pub fn east_coast_date_in_x_days(days: i64, past: bool) -> Result<chrono::NaiveD
         "%Y-%m-%d",
     )?)
 }
+
+pub async fn refresh_materialized_views(pool: &PgPool) -> anyhow::Result<()> {
+    log::info!("Refreshing materialized views!");
+
+    sqlx::query!("REFRESH MATERIALIZED VIEW weekly_rankings")
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}
 pub async fn send_polls(
     pool: &PgPool,
     chat_id: i64,

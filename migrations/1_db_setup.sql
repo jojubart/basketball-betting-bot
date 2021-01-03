@@ -229,7 +229,7 @@ WHERE users.id NOT IN
 ;
 
 	
-CREATE OR REPLACE VIEW weekly_rankings AS
+CREATE MATERIALIZED VIEW weekly_rankings AS
 SELECT
 	users.id
 	,users.first_name

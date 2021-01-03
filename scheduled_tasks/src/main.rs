@@ -54,6 +54,7 @@ async fn main() -> anyhow::Result<()> {
             }
         }
         stop_poll(&pool, &bot).await?;
+        refresh_materialized_views(&pool).await?;
     }
 
     Ok(())
