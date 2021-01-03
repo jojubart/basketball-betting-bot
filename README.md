@@ -41,4 +41,6 @@ added to the group)
 THIS CAN'T BE UNDONE!
 
 Here's an example of what it looks like:
-<img src="./screenshots/weekly_bets.png" alt="Weekly Bets" style="zoom: 45%;" /><img src="./screenshots/weekly_standings.png" alt="Weekly Standings" style="zoom:50%;" />
+
+
+<img src="./screenshots/weekly_bets.png" alt="Weekly Bets" height="500" /><img src="./screenshots/weekly_standings.png" alt="Weekly Standings" height="200" />
