@@ -1,3 +1,5 @@
+#![warn(clippy::all)]
+
 use crate::states::*;
 use crate::*;
 use basketball_betting_bot::{
@@ -52,9 +54,11 @@ async fn ready(_state: ReadyState, cx: TransitionIn, ans: String) -> TransitionO
         return next(ReadyState);
     }
 
+    dbg!(ans);
     match ans {
         "/start" | "/start@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
+            log::info!("COMMAND: /start, chat_id: {}", chat_id);
             if get_active_chat_status(&pool, chat_id)
                 .await
                 .unwrap_or(false)
@@ -87,12 +91,14 @@ You play against the other members of your group and the winner is the one who w
 
         "/standings" | "/standings@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
+            log::info!("COMMAND: /standings, chat_id: {}", chat_id);
             show_week_rankings(&cx, &pool, chat_id, -1)
                 .await
                 .unwrap_or_default();
         }
         "/full_standings" | "/full_standings@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
+            log::info!("COMMAND: /full_standings, chat_id: {}", chat_id);
             show_complete_rankings(&cx, &pool, chat_id)
                 .await
                 .unwrap_or_default();
@@ -100,17 +106,20 @@ You play against the other members of your group and the winner is the one who w
 
         "/all_bets" | "/all_bets@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
+            log::info!("COMMAND: /all_bets, chat_id: {}", chat_id);
             show_all_bets_season(&pool, &cx, chat_id)
                 .await
                 .unwrap_or_default();
         }
         "/stop_season" | "/stop_season@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
+            log::info!("COMMAND: /stop_season, chat_id: {}", chat_id);
             if user_is_admin(chat_id, &cx).await.unwrap_or(false) {
                 cx.answer_str(
                     "Send /end_my_season to end the season.\n
 Afterwards you will get the standings of this week and the complete results table.\n
-YOU CAN'T UNDO THIS ACTION AND ALL YOUR BETS AND RESULTS ARE LOST!",
+YOU CAN'T UNDO THIS ACTION AND ALL YOUR BETS AND RESULTS ARE LOST!\n
+Send /continue to go on!",
                 )
                 .await?;
                 return next(StopState);
@@ -121,6 +130,7 @@ YOU CAN'T UNDO THIS ACTION AND ALL YOUR BETS AND RESULTS ARE LOST!",
         }
         "/week_standings" | "/week_standings@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
+            log::info!("COMMAND: /week_standings, chat_id: {}", chat_id);
             let bet_week = get_bet_week(&pool, chat_id).await;
 
             match bet_week {
@@ -160,6 +170,7 @@ YOU CAN'T UNDO THIS ACTION AND ALL YOUR BETS AND RESULTS ARE LOST!",
             }
         }
         "/sage" | "/sage@BasketballBettingBot" => {
+            log::info!("COMMAND: /sage, chat_id: {}", cx.update.chat_id());
             let photo = teloxide::types::InputFile::Url(
                 "https://media.giphy.com/media/zLVTQRSiCm2a8kljMq/giphy.gif".to_string(),
             );
@@ -219,11 +230,15 @@ async fn stop_season(_state: StopState, cx: TransitionIn, ans: String) -> Transi
     dbg!("StopState");
     let chat_id = cx.update.chat_id();
     if !user_is_admin(chat_id, &cx).await.unwrap_or(false) {
+        log::info!("Non Admin wanted to stop season!\nchat_id: {}", chat_id);
         cx.answer_str("Only the group admins can stop the chat!")
             .await?;
         return next(ReadyState);
     }
-    match ans.as_str() {
+
+    let ans = ans.as_str();
+    dbg!(ans);
+    match ans {
         "/end_my_season" => {
             show_week_rankings(&cx, &pool, chat_id, -1)
                 .await

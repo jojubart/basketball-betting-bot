@@ -44,6 +44,10 @@ pub async fn send_polls(
     bot: &teloxide::Bot,
     games: &[Game],
 ) -> anyhow::Result<()> {
+    log::info!(
+        "{}",
+        format!("Sending polls! (send_polls()), chat_id: {}", chat_id)
+    );
     let bet_week = get_bet_week(pool, chat_id).await?;
     let tomorrow = east_coast_date_in_x_days(1, false)?;
 
