@@ -187,23 +187,27 @@ Send /continue to go on!",
         }
         "/help" | "/help@BasketballBettingBot" => {
             cx.answer_str(r#"BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. The one who gets the most games right in a week gets one point.
-You play against the other members of your group and the winner is the one who wins the most weeks.
-Once everyone who wants to participate is in this group, send /start to begin if you haven't done so already!
+You play against the other members of your group.
+The winner is the one who wins the most weeks (/full_standings) or the one who gets the most bets right in total (/all_bets). Your Call.
 
-/start - Start your season! (wait until everyone who wants to participate was added to the group)
+/standings 
+-> Show standings for the ongoing week
 
-/standings - Shows ranking for current week
+/full_standings 
+-> Show standings for the whole season
 
-/full_standings - Shows weekly ranking for the whole season
-
-/all_bets - Show fraction of correct bets over the season 
+/all_bets 
+-> Show fraction of correct bets for the whole season 
 (Alternative to weekly standings)
 
-/week_standings - Show standings for a specified week
+/week_standings 
+-> Show standings for a specified week
 
-/sage - Cleanse the chat from toxic energy
+/sage 
+-> Cleanse the chat from toxic energy
 
-/stop_season - End the betting season and receive final standings.
+/stop_season 
+-> End the betting season and receive final standings
 THIS CAN'T BE UNDONE!
 
 
