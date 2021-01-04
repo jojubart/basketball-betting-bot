@@ -23,21 +23,21 @@ so don't worry about trash talking him - he won't know.
 
 **These are the commands he understands:**
 
-- /start - Start your season! (wait until everyone who wants to participate was
+- **/start** -> Start your season! (wait until everyone who wants to participate was
 added to the group)
 
-- /standings - Shows ranking for current week
+- **/standings** -> Show standings for the ongoing week
 
-- /full_standings - Shows weekly ranking for the whole season
+- **/full_standings** -> Show standings for the whole season
 
-- /all_bets - Show fraction of correct bets over the season 
+- **/all_bets** -> Show fraction of correct bets for the whole season
 (Alternative to weekly standings)
 
-- /week_standings - Show standings for a specified week
+- **/week_standings** -> Show standings for a specified week
 
-- /sage - Cleanse the chat from toxic energy
+- **/sage** -> Cleanse the chat from toxic energy
 
-- /stop_season - End the betting season and receive final standings.
+- **/stop_season** -> End the betting season and receive final standings.
 THIS CAN'T BE UNDONE!
 
 Here's an example of what it looks like:
