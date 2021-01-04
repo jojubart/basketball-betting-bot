@@ -4,4 +4,4 @@ scheduled_tasks/target/
 *.DS_Store
 *.log
 /log
-
+.idea
