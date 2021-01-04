@@ -70,8 +70,14 @@ async fn ready(_state: ReadyState, cx: TransitionIn, ans: String) -> TransitionO
             change_active_chat_status(&pool, chat_id, true)
                 .await
                 .unwrap_or_default();
-            cx.answer_str(r#"BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. The one who gets the most games right in a week gets one point.
-You play against the other members of your group and the winner is the one who wins the most weeks."#).await?;
+            cx.answer_str(r#"
+BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. 
+The one who gets the most games right in a week gets one point.
+You play against the other members of your group.
+The overall winner is the one with the most weekly wins (/full_standings) or the one with the most correct bets overall (/all_bets). Your Call.
+
+To get a list of all commands the bot understands, send /help
+"#).await?;
             cx.answer_str("Your season begins now!").await?;
 
             let games = get_games(
@@ -186,9 +192,11 @@ Send /continue to go on!",
             }
         }
         "/help" | "/help@BasketballBettingBot" => {
-            cx.answer_str(r#"BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. The one who gets the most games right in a week gets one point.
+            cx.answer_str(r#"
+BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. 
+The one who gets the most games right in a week gets one point.
 You play against the other members of your group.
-The winner is the one who wins the most weeks (/full_standings) or the one who gets the most bets right in total (/all_bets). Your Call.
+The overall winner is the one with the most weekly wins (/full_standings) or the one with the most correct bets overall (/all_bets). Your Call.
 
 /standings 
 -> Show standings for the ongoing week
