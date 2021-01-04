@@ -4,7 +4,6 @@ Bugs:
 
 Features:
 	- Cache daily games -> Listen+Notify Postgres + Redis [Prio 1]
-	- weekly_rankings as meterialized view, refresh when scheduled_tasks is called [Prio 1]
 	- automatically send out weekly results [Prio 2]
 	- add more modes 
 		- Europe mode?
@@ -29,3 +28,4 @@ Done:
 				- send message: "Please send me a valid number from 1 to MAX(WEEK)"
 
 	- show fraction of correct bets overall [DONE]
+	- weekly_rankings as meterialized view, refresh when scheduled_tasks is called [DONE]

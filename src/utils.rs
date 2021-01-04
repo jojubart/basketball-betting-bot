@@ -1,6 +1,7 @@
 use crate::Error;
-use sqlx::{postgres::PgPool, types::BigDecimal};
+use sqlx::{postgres::PgPool, types::BigDecimal, query};
 use teloxide::prelude::*;
+use teloxide::KnownApiErrorKind;
 
 fn east_coast_date_today() -> Result<chrono::NaiveDate, Error> {
     let today_east_coast_delayed_format = chrono::Utc::now()
@@ -42,7 +43,7 @@ pub fn east_coast_date_in_x_days(days: i64, past: bool) -> Result<chrono::NaiveD
 pub async fn refresh_materialized_views(pool: &PgPool) -> anyhow::Result<()> {
     log::info!("Refreshing materialized views!");
 
-    sqlx::query!("REFRESH MATERIALIZED VIEW weekly_rankings")
+    query!("REFRESH MATERIALIZED VIEW weekly_rankings")
         .execute(pool)
         .await?;
 
@@ -106,7 +107,7 @@ async fn insert_bet_week(
     end_date: chrono::NaiveDate,
     polls_sent: bool,
 ) -> anyhow::Result<i32> {
-    let row = sqlx::query!(
+    let row = query!(
         r#"
         INSERT INTO bet_weeks(chat_id, week_number, start_date, end_date, polls_sent) VALUES 
         ($1, $2, $3, $4, $5)
@@ -124,7 +125,7 @@ async fn insert_bet_week(
 }
 
 async fn _update_bet_week(pool: &PgPool, bet_week_id: i32) -> anyhow::Result<()> {
-    sqlx::query!(
+    query!(
         r#"
         UPDATE bet_weeks
         SET polls_sent = True
@@ -139,7 +140,7 @@ async fn _update_bet_week(pool: &PgPool, bet_week_id: i32) -> anyhow::Result<()>
 }
 
 pub async fn get_bet_week(pool: &PgPool, chat_id: i64) -> Result<BetWeek, Error> {
-    let row = sqlx::query!(
+    let row = query!(
         r#"SELECT 
         id,
         week_number
@@ -189,7 +190,7 @@ pub async fn get_bet_week(pool: &PgPool, chat_id: i64) -> Result<BetWeek, Error>
 }
 
 async fn _get_number_of_games_for_chat(pool: &PgPool, chat_id: i64) -> anyhow::Result<i64> {
-    let number_of_games = sqlx::query!(
+    let number_of_games = query!(
         "SELECT number_of_games FROM full_chat_information WHERE chat_id = $1",
         chat_id
     )
@@ -246,7 +247,7 @@ async fn send_game(
 }
 
 pub async fn poll_is_in_db(pool: &PgPool, game_id: i32, chat_id: i64) -> Result<bool, Error> {
-    sqlx::query!(
+    query!(
         r#"
         SELECT EXISTS(
             SELECT * 
@@ -266,7 +267,7 @@ pub async fn poll_is_in_db(pool: &PgPool, game_id: i32, chat_id: i64) -> Result<
 }
 
 pub async fn poll_is_in_db_by_poll_id(pool: &PgPool, poll_id: String) -> Result<bool, Error> {
-    sqlx::query!(
+    query!(
         "SELECT EXISTS(SELECT id from polls WHERE id = $1);",
         poll_id
     )
@@ -286,7 +287,7 @@ async fn add_poll(
 ) -> anyhow::Result<()> {
     let date_east_coast = east_coast_date_today()?;
 
-    sqlx::query!(
+    query!(
         r#"
         INSERT INTO polls(id,local_id, chat_id, game_id, poll_sent_date, bet_week_id) VALUES 
         ($1, $2, $3, $4, $5, $6);
@@ -310,7 +311,7 @@ pub async fn get_games(
     start_date: chrono::NaiveDate,
     end_date: chrono::NaiveDate,
 ) -> anyhow::Result<Vec<Game>> {
-    let games_raw = sqlx::query!(
+    let games_raw = query!(
         r#"
         (select * from  
  (SELECT DISTINCT ON (away_team_id, home_team_id) * FROM 
@@ -386,7 +387,7 @@ pub async fn get_games(
 }
 
 async fn polls_exist(pool: &PgPool) -> Result<bool, Error> {
-    sqlx::query!("SELECT EXISTS(SELECT * FROM polls)")
+    query!("SELECT EXISTS(SELECT * FROM polls)")
         .fetch_one(pool)
         .await?
         .exists
@@ -396,13 +397,13 @@ pub async fn stop_poll(pool: &PgPool, bot: &teloxide::Bot) -> Result<(), Error> 
     if !polls_exist(pool).await? {
         return Ok(());
     }
-    let polls_to_close = sqlx::query!(
+
+    let polls_to_close = query!(
         r#"
         SELECT id, local_id, chat_id FROM polls
        WHERE game_id IN
        (SELECT id FROM games WHERE now() at time zone 'EST' >= date_time)
        AND is_open = True;
-
         "#
     )
     .fetch_all(pool)
@@ -410,19 +411,28 @@ pub async fn stop_poll(pool: &PgPool, bot: &teloxide::Bot) -> Result<(), Error> 
 
     for poll in polls_to_close {
         let chat_id = poll.chat_id.unwrap_or(-1);
+        dbg!("Closing Poll:", &poll, chat_id);
         match bot.stop_poll(chat_id, poll.local_id.unwrap()).send().await {
-            Ok(_) => (),
-            Err(_) => continue,
-        }
-
-        sqlx::query!(
-            r#"
+            Ok(_)
+            | Err(RequestError::ApiError {
+                kind: teloxide::ApiErrorKind::Known(KnownApiErrorKind::ChatNotFound),
+                ..
+            }) => {
+                query!(
+                    r#"
         UPDATE polls SET is_open = False WHERE id = $1
         "#,
-            poll.id
-        )
-        .execute(pool)
-        .await?;
+                    poll.id
+                )
+                .execute(pool)
+                .await?;
+                continue;
+            }
+            Err(e) => {
+                dbg!(e);
+                continue;
+            }
+        }
     }
 
     Ok(())
@@ -433,7 +443,7 @@ pub async fn show_all_bets_season(
     cx: &UpdateWithCx<Message>,
     chat_id: i64,
 ) -> Result<(), Error> {
-    let ranking_query = sqlx::query!(
+    let ranking_query = query!(
         "SELECT * from correct_bets_season WHERE chat_id = $1 ORDER BY rank_number ASC",
         chat_id
     )
@@ -475,7 +485,7 @@ pub async fn number_of_finished_games_week(
     chat_id: i64,
     week_number: i32,
 ) -> Result<u8, Error> {
-    let row = sqlx::query!(
+    let row = query!(
         r#"
         SELECT 
             count(*) AS finished_games
@@ -516,16 +526,16 @@ pub async fn user_is_admin(chat_id: i64, cx: &UpdateWithCx<Message>) -> Result<b
 }
 
 pub async fn remove_chat(pool: &PgPool, chat_id: i64) -> Result<(), Error> {
-    sqlx::query!("DELETE FROM bets WHERE chat_id = $1", chat_id)
+    query!("DELETE FROM bets WHERE chat_id = $1", chat_id)
         .execute(pool)
         .await?;
-    sqlx::query!("DELETE FROM polls WHERE chat_id = $1", chat_id)
+    query!("DELETE FROM polls WHERE chat_id = $1", chat_id)
         .execute(pool)
         .await?;
-    sqlx::query!("DELETE FROM bet_weeks WHERE chat_id = $1", chat_id)
+    query!("DELETE FROM bet_weeks WHERE chat_id = $1", chat_id)
         .execute(pool)
         .await?;
-    sqlx::query!("DELETE FROM chats WHERE id = $1", chat_id)
+    query!("DELETE FROM chats WHERE id = $1", chat_id)
         .execute(pool)
         .await?;
     Ok(())
@@ -536,7 +546,7 @@ pub async fn change_active_chat_status(
     chat_id: i64,
     new_status: bool,
 ) -> Result<(), Error> {
-    sqlx::query!(
+    query!(
         "UPDATE chats SET is_active = $1 WHERE id = $2",
         new_status,
         chat_id
@@ -548,7 +558,7 @@ pub async fn change_active_chat_status(
 }
 
 pub async fn chat_is_known(pool: &PgPool, chat_id: i64) -> Result<bool, Error> {
-    let is_known = sqlx::query!("SELECT EXISTS(SELECT * FROM chats WHERE id = $1)", chat_id)
+    let is_known = query!("SELECT EXISTS(SELECT * FROM chats WHERE id = $1)", chat_id)
         .fetch_one(pool)
         .await?;
 
@@ -565,7 +575,7 @@ pub async fn add_bet(
     bet: i32,
     poll_id: String,
 ) -> Result<(), Error> {
-    sqlx::query!(
+    query!(
         r#"
         INSERT INTO bets(game_id, chat_id, user_id, bet, poll_id) VALUES 
         ($1, $2, $3, $4, $5);
@@ -586,7 +596,7 @@ pub async fn bet_to_team_id(pool: &PgPool, bet: i32, game_id: i32) -> Result<i32
     // bet is 0 if first option was picked (the away team)
     // bet is 1 if second option was picked (the home team)
     match bet {
-        0 => sqlx::query!(
+        0 => query!(
             r#"
             SELECT away_team FROM games WHERE id = $1;
             "#,
@@ -596,7 +606,7 @@ pub async fn bet_to_team_id(pool: &PgPool, bet: i32, game_id: i32) -> Result<i32
         .await?
         .away_team
         .ok_or(Error::SQLxError(sqlx::Error::RowNotFound)),
-        1 => sqlx::query!(
+        1 => query!(
             r#"
             SELECT home_team FROM games WHERE id = $1;
             "#,
@@ -615,7 +625,7 @@ pub async fn get_chat_id_game_id_from_poll(
     poll_id: String,
 ) -> Result<(i64, i32), Error> {
     dbg!(&poll_id);
-    let row = sqlx::query!(
+    let row = query!(
         r#"
         SELECT chat_id, game_id FROM polls WHERE id = $1;
         "#,
@@ -628,7 +638,7 @@ pub async fn get_chat_id_game_id_from_poll(
 }
 
 pub async fn user_is_in_db(pool: &PgPool, user_id: i64) -> Result<bool, Error> {
-    sqlx::query!("SELECT EXISTS(SELECT * FROM users WHERE id = $1)", user_id)
+    query!("SELECT EXISTS(SELECT * FROM users WHERE id = $1)", user_id)
         .fetch_one(pool)
         .await?
         .exists
@@ -643,7 +653,7 @@ pub async fn add_user(
     username: String,
     language_code: String,
 ) -> Result<(), Error> {
-    sqlx::query!(
+    query!(
         r#"
             INSERT INTO users(id, first_name, last_name, username, language_code) VALUES
             ($1, $2, $3, $4, $5);
@@ -666,7 +676,7 @@ pub async fn show_complete_rankings(
     pool: &PgPool,
     chat_id: i64,
 ) -> Result<(), Error> {
-    let ranking_query = sqlx::query!(
+    let ranking_query = query!(
         r#"
         SELECT 
          first_name
@@ -724,7 +734,7 @@ pub async fn show_week_rankings(
     chat_id: i64,
     week_number: i32,
 ) -> Result<(), Error> {
-    let ranking_query = sqlx::query!(
+    let ranking_query = query!(
         r#"
         SELECT first_name
         ,last_name
