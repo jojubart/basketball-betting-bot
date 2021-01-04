@@ -73,6 +73,7 @@ async fn ready(_state: ReadyState, cx: TransitionIn, ans: String) -> TransitionO
             cx.answer_str(r#"BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. The one who gets the most games right in a week gets one point.
 You play against the other members of your group and the winner is the one who wins the most weeks."#).await?;
             cx.answer_str("Your season begins now!").await?;
+
             let games = get_games(
                 &pool,
                 10,

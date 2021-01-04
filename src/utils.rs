@@ -1,5 +1,5 @@
 use crate::Error;
-use sqlx::{postgres::PgPool, types::BigDecimal, query};
+use sqlx::{postgres::PgPool, query, types::BigDecimal};
 use teloxide::prelude::*;
 use teloxide::KnownApiErrorKind;
 
@@ -354,7 +354,7 @@ pub async fn get_games(
          AND DATE(date_time AT TIME ZONE 'EST') >= $2 
          ORDER BY srs_sum ASC 
          LIMIT 1 
-         ) ORDER BY date_time DESC 
+         ) ORDER BY date_time ASC 
 
 "#,
         // date a week from now in East Coast time
@@ -765,14 +765,14 @@ pub async fn show_week_rankings(
     let week_number;
     let week_number_raw = &ranking_query.get(0);
     if week_number_raw.is_none() {
-        cx.answer_str("You can see the standings tomorrow after your first round of games is finished.\nAlso, make sure to answer at least one poll to see the standings!").await?;
+        cx.answer_str("You can see the standings a couple hours after your first game is finished.\nMake sure to answer at least one poll!").await?;
         return Ok(());
     } else {
         week_number = week_number_raw.unwrap().week_number.unwrap_or(-1);
     }
 
     let finished_games = number_of_finished_games_week(pool, chat_id, week_number).await?;
-    let mut rankings = format!("Week {week_number}\nYou get one point for every correct bet\n\nRank |          Name          |    Points\n--- --- --- --- --- --- --- --- --- --\n",
+    let mut rankings = format!("Week {week_number}\nYou get one point for every correct bet\nSend /help to see more commands\n\n\nRank |          Name          |    Points\n--- --- --- --- --- --- --- --- --- --\n",
             week_number = week_number);
 
     for record in ranking_query {
