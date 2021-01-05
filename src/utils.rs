@@ -1,4 +1,5 @@
 use crate::Error;
+use redis::Commands;
 use sqlx::{postgres::PgPool, query, types::BigDecimal};
 use teloxide::prelude::*;
 use teloxide::KnownApiErrorKind;
@@ -313,7 +314,7 @@ pub async fn get_games(
 ) -> anyhow::Result<Vec<Game>> {
     let games_raw = query!(
         r#"
-        (select * from  
+        (SELECT * FROM  
  (SELECT DISTINCT ON (away_team_id, home_team_id) * FROM 
          (SELECT * FROM  
          (SELECT  
@@ -346,9 +347,9 @@ pub async fn get_games(
              ,srs_sum 
              ,date_time AT TIME ZONE 'EST' as date_time 
              ,DATE(date_time AT TIME ZONE 'EST') AS date 
-             ,to_char(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD') AS date_string
-             ,to_char(date_time AT TIME ZONE 'EST', 'HH:MI AM TZ') AS time_string
-             ,to_char(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD HH:MI AM TZ') AS pretty_date_time 
+             ,TO_CHAR(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD') AS date_string
+             ,TO_CHAR(date_time AT TIME ZONE 'EST', 'HH:MI AM TZ') AS time_string
+             ,TO_CHAR(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD HH:MI AM TZ') AS pretty_date_time 
          FROM public.full_game_information 
          WHERE DATE(date_time AT TIME ZONE 'EST') <= $1 
          AND DATE(date_time AT TIME ZONE 'EST') >= $2 
@@ -384,6 +385,30 @@ pub async fn get_games(
     }
 
     Ok(games)
+}
+
+pub fn cache_games(games: Vec<Game>) -> redis::RedisResult<()> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_connection()?;
+    for (game_number, game) in games.into_iter().enumerate() {
+        let _: () = con.hset_multiple(
+            game_number,
+            &[
+                ("id", game.id.to_string()),
+                ("away_team_id", game.away_team_id.to_string()),
+                ("away_team", game.away_team.to_owned()),
+                ("home_team_id", game.home_team_id.to_string()),
+                ("home_team", game.home_team.to_owned()),
+                ("srs_sum", game.srs_sum.to_string()),
+                ("date_time", game.date_time.to_string()),
+                ("pretty_date_time", game.pretty_date_time.to_owned()),
+                ("date_string", game.date_string.to_owned()),
+                ("time_string", game.date_string.to_owned()),
+            ],
+        )?;
+        let _: () = con.expire(game_number, 60)?;
+    }
+    Ok(())
 }
 
 async fn polls_exist(pool: &PgPool) -> Result<bool, Error> {
@@ -450,7 +475,7 @@ pub async fn show_all_bets_season(
     .fetch_all(pool)
     .await?;
 
-    let mut rankings = String::from("All Bets (include the ongoing week)\n\nRank |          Name          |    Correct Bets\n--- --- --- --- --- --- --- --- --- --- ---\n",
+    let mut rankings = String::from("Fraction of correct bets for the whole season\n(include the ongoing week)\n\nRank |          Name          |    Correct Bets\n--- --- --- --- --- --- --- --- --- --- ---\n",
             );
 
     for record in ranking_query {

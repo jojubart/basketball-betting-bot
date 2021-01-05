@@ -55,6 +55,8 @@ async fn ready(_state: ReadyState, cx: TransitionIn, ans: String) -> TransitionO
     }
 
     dbg!(ans);
+    dbg!(chat_id);
+    dbg!(chrono::Utc::now());
     match ans {
         "/start" | "/start@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
