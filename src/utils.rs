@@ -396,7 +396,7 @@ pub fn cache_games(games: Vec<Game>) -> redis::RedisResult<()> {
                 ("time_string", game.date_string.to_owned()),
             ],
         )?;
-        let _: () = con.expire(game_number, 60 * 60)?;
+        let _: () = con.expire(game_number, 60 * 60 * 18)?;
     }
     Ok(())
 }
