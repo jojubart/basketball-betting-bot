@@ -10,25 +10,19 @@ use teloxide::prelude::*;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let scraped_months = get_relevant_months()?;
-    dbg!(&scraped_months);
-    scrape_teams().await?;
-    for month in scraped_months {
-        scrape_games(month).await?;
-    }
-    let bot = Bot::builder().build();
     let pool = PgPool::connect(
         &env::var("DATABASE_URL").expect("Could not find environment variable DATABASE_URL"),
     )
     .await
     .expect("Could not establish connection do database");
 
-    if active_chats_exist(&pool).await? {
-        let chats = sqlx::query!("SELECT DISTINCT id FROM chats WHERE is_active = True")
-            .fetch_all(&pool)
-            .await
-            .unwrap_or_default();
-
+    if Utc::now().hour() >= 5 && Utc::now().hour() <= 12 {
+        let scraped_months = get_relevant_months()?;
+        dbg!(&scraped_months);
+        scrape_teams().await?;
+        for month in scraped_months {
+            scrape_games(month).await?;
+        }
         cache_games(
             get_games(
                 &pool,
@@ -42,6 +36,14 @@ async fn main() -> anyhow::Result<()> {
         .unwrap_or_else(|error| {
             dbg!("Can't cache games!", error);
         });
+    }
+    let bot = Bot::builder().build();
+
+    if active_chats_exist(&pool).await? {
+        let chats = sqlx::query!("SELECT DISTINCT id FROM chats WHERE is_active = True")
+            .fetch_all(&pool)
+            .await
+            .unwrap_or_default();
 
         // don't send polls in the middle of the night in USA and Europe
         // three tries to send out polls in case of network error
