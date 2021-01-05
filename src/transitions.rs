@@ -200,6 +200,8 @@ The one who gets the most games right in a week gets one point.
 You play against the other members of your group.
 The overall winner is the one with the most weekly wins (/full_standings) or the one with the most correct bets overall (/all_bets). Your Call.
 
+Results are updated nightly at around 4:30am Eastern Time (ET)
+
 /standings 
 -> Show standings for the ongoing week
 

@@ -1,4 +1,6 @@
 use crate::Error;
+use chrono::prelude::*;
+use chrono::Duration;
 use redis::Commands;
 use sqlx::{postgres::PgPool, query, types::BigDecimal};
 use teloxide::prelude::*;
@@ -475,7 +477,7 @@ pub async fn show_all_bets_season(
     .fetch_all(pool)
     .await?;
 
-    let mut rankings = String::from("Fraction of correct bets for the whole season\n(include the ongoing week)\n\nRank |          Name          |    Correct Bets\n--- --- --- --- --- --- --- --- --- --- ---\n",
+    let mut rankings = String::from("Fraction of correct bets for the whole season\n(including the ongoing week)\n\nRank |          Name          |    Correct Bets\n--- --- --- --- --- --- --- --- --- --- ---\n",
             );
 
     for record in ranking_query {
@@ -499,6 +501,9 @@ pub async fn show_all_bets_season(
             .as_str(),
         );
     }
+
+    rankings.push('\n');
+    rankings.push_str(&get_duration_since_update());
 
     cx.answer(&rankings).send().await?;
 
@@ -724,7 +729,7 @@ pub async fn show_complete_rankings(
     ).fetch_all(pool).await?;
 
     let mut rankings = String::from(
-        "Standings (include the ongoing week)\n\nRank |          Name          |    Weeks Won\n--- --- --- --- --- --- --- --- --- --- ---\n",
+        "Standings (including current week)\n\nRank |          Name          |    Weeks Won\n--- --- --- --- --- --- --- --- --- --- ---\n",
             );
 
     for record in ranking_query {
@@ -747,6 +752,9 @@ pub async fn show_complete_rankings(
             .as_str(),
         );
     }
+
+    rankings.push('\n');
+    rankings.push_str(&get_duration_since_update());
 
     cx.answer(&rankings).send().await?;
 
@@ -822,9 +830,50 @@ pub async fn show_week_rankings(
         );
     }
 
+    rankings.push('\n');
+    rankings.push_str(&get_duration_since_update());
+
     cx.answer(&rankings).send().await?;
 
     Ok(())
+}
+
+fn get_duration_since_update() -> String {
+    let now = chrono::Utc::now();
+
+    let yesterday = now - Duration::hours(24);
+    let last_scrape = match now.time().hour() {
+        0..=8 => Utc
+            .ymd(yesterday.year(), yesterday.month(), yesterday.day())
+            .and_hms(9, 30, 0),
+        9 => match now.time().minute() {
+            0..=29 => Utc
+                .ymd(yesterday.year(), yesterday.month(), yesterday.day())
+                .and_hms(9, 30, 0),
+            _ => Utc
+                .ymd(now.year(), now.month(), now.day())
+                .and_hms(9, 30, 0),
+        },
+        _ => Utc
+            .ymd(now.year(), now.month(), now.day())
+            .and_hms(9, 30, 0),
+    };
+
+    let time_since_update = now - last_scrape;
+
+    match time_since_update.num_minutes() {
+        0..=59 => {
+            format!(
+                "Last Update: {minutes}min ago",
+                minutes = time_since_update.num_minutes()
+            )
+        }
+        60..=119 => "Last Update: 1 hour ago".to_string(),
+        _ => format!(
+            "Last Update: {hours} ago",
+            hours = time_since_update.num_hours()
+        ),
+    }
 }
 
 #[derive(Debug)]
