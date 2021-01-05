@@ -334,6 +334,9 @@ pub async fn get_games(
          FROM public.full_game_information 
          WHERE DATE(date_time AT TIME ZONE 'EST') <= $1 
          AND DATE(date_time AT TIME ZONE 'EST') >= $2 
+         AND srs_home > 0
+         and srs_away > 0
+         AND ABS(srs_home - srs_away) < 5
          ORDER BY srs_sum DESC 
          ) AS tmp ) as tmp2 
  ) as tmp3
