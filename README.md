@@ -1,5 +1,5 @@
 # Basketball Betting Bot - Another Ball Brother
-[![Build Status](https://travis-ci.com/JBlackbeard/basketball-betting-bot.svg?token=pakYHByBsjWsRucgfyXf&branch=master)](https://travis-ci.com/JBlackbeard/basketball-betting-bot)
+[![Build Status](https://travis-ci.com/myblackbeard/basketball-betting-bot.svg?token=pakYHByBsjWsRucgfyXf&branch=master)](https://travis-ci.com/myblackbeard/basketball-betting-bot)
 
 **TELEGRAM: @BasketballBettingBot**
 
