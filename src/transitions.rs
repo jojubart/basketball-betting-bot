@@ -5,9 +5,9 @@ use crate::*;
 use basketball_betting_bot::{
     get_active_chat_status,
     utils::{
-        change_active_chat_status, chat_is_known, east_coast_date_in_x_days, get_bet_week,
-        get_games, remove_chat, send_polls, show_all_bets_season, show_complete_rankings,
-        show_week_rankings, user_is_admin,
+        cache_to_games, change_active_chat_status, chat_is_known, east_coast_date_in_x_days,
+        get_bet_week, get_games, remove_chat, send_polls, show_all_bets_season,
+        show_complete_rankings, show_week_rankings, user_is_admin,
     },
 };
 use sqlx::postgres::PgPool;
@@ -56,7 +56,7 @@ async fn ready(_state: ReadyState, cx: TransitionIn, ans: String) -> TransitionO
 
     dbg!(ans);
     dbg!(chat_id);
-    dbg!(chrono::Utc::now());
+    dbg!(chrono::Utc::now().naive_utc());
     match ans {
         "/start" | "/start@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
@@ -69,9 +69,6 @@ async fn ready(_state: ReadyState, cx: TransitionIn, ans: String) -> TransitionO
                     .await?;
                 return next(ReadyState);
             }
-            change_active_chat_status(&pool, chat_id, true)
-                .await
-                .unwrap_or_default();
             cx.answer_str(r#"
 BasketballBettingBot sends you 11 NBA games to bet on each week, 10 good ones and one battle between the supreme tank commanders. 
 The one who gets the most games right in a week gets one point.
@@ -82,19 +79,27 @@ To get a list of all commands the bot understands, send /help
 "#).await?;
             cx.answer_str("Your season begins now!").await?;
 
-            let games = get_games(
-                &pool,
-                10,
-                east_coast_date_in_x_days(1, false).unwrap(),
-                east_coast_date_in_x_days(7, false).unwrap(),
-            )
-            .await
-            .unwrap_or_default();
+            let mut games = cache_to_games().unwrap_or_default();
+            if games.len() < 11 {
+                games = get_games(
+                    &pool,
+                    10,
+                    east_coast_date_in_x_days(1, false).unwrap(),
+                    east_coast_date_in_x_days(7, false).unwrap(),
+                )
+                .await
+                .unwrap_or_default();
+            }
 
             send_polls(&pool, chat_id, &cx.bot, &games)
                 .await
                 .unwrap_or_default();
             dbg!("SEASONS STARTS");
+
+            change_active_chat_status(&pool, chat_id, true)
+                .await
+                .unwrap_or_default();
+
             return next(ReadyState);
         }
 

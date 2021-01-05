@@ -1,8 +1,9 @@
 use crate::Error;
 use chrono::prelude::*;
 use chrono::Duration;
+use num_traits::cast::ToPrimitive;
 use redis::Commands;
-use sqlx::{postgres::PgPool, query, types::BigDecimal};
+use sqlx::{postgres::PgPool, query};
 use teloxide::prelude::*;
 use teloxide::KnownApiErrorKind;
 
@@ -81,19 +82,6 @@ pub async fn send_polls(
             true,
         )
         .await?;
-
-        //let number_of_games = get_number_of_games_for_chat(&pool, chat_id)
-        //    .await
-        //    .expect("Could not get number of games");
-
-        //let games = get_games(
-        //    &pool,
-        //    number_of_games,
-        //    east_coast_date_in_x_days(1, false)?,
-        //    east_coast_date_in_x_days(7, false)?,
-        //)
-        //.await
-        //.unwrap_or_default();
 
         for game in games {
             send_game(&pool, game.id, chat_id, game, &bot, bet_week_id).await?;
@@ -336,7 +324,7 @@ pub async fn get_games(
          AND DATE(date_time AT TIME ZONE 'EST') >= $2 
          AND srs_home > 0
          and srs_away > 0
-         AND ABS(srs_home - srs_away) < 5
+         --AND ABS(srs_home - srs_away) < 5
          ORDER BY srs_sum DESC 
          ) AS tmp ) as tmp2 
  ) as tmp3
@@ -371,7 +359,6 @@ pub async fn get_games(
     )
     .fetch_all(pool)
     .await?;
-
     let mut games = Vec::new();
     for record in games_raw {
         let game: Game = Game {
@@ -380,8 +367,7 @@ pub async fn get_games(
             away_team: record.away_team.unwrap(),
             home_team_id: record.home_team_id.unwrap(),
             home_team: record.home_team.unwrap(),
-            srs_sum: record.srs_sum.unwrap(),
-            date_time: record.date_time.unwrap(),
+            srs_sum: record.srs_sum.unwrap().to_f64().unwrap(),
             pretty_date_time: record.pretty_date_time.unwrap(),
             date_string: record.date_string.unwrap(),
             time_string: record.time_string.unwrap(),
@@ -405,15 +391,37 @@ pub fn cache_games(games: Vec<Game>) -> redis::RedisResult<()> {
                 ("home_team_id", game.home_team_id.to_string()),
                 ("home_team", game.home_team.to_owned()),
                 ("srs_sum", game.srs_sum.to_string()),
-                ("date_time", game.date_time.to_string()),
                 ("pretty_date_time", game.pretty_date_time.to_owned()),
                 ("date_string", game.date_string.to_owned()),
                 ("time_string", game.date_string.to_owned()),
             ],
         )?;
-        let _: () = con.expire(game_number, 60)?;
+        let _: () = con.expire(game_number, 60 * 60)?;
     }
     Ok(())
+}
+
+pub fn cache_to_games() -> redis::RedisResult<Vec<Game>> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_connection()?;
+
+    let mut games: Vec<Game> = Vec::new();
+
+    for game_number in 0..=10 {
+        let game = Game {
+            id: con.hget(game_number, "id")?,
+            away_team_id: con.hget(game_number, "away_team_id")?,
+            away_team: con.hget(game_number, "away_team")?,
+            home_team_id: con.hget(game_number, "home_team_id")?,
+            home_team: con.hget(game_number, "home_team")?,
+            srs_sum: con.hget(game_number, "srs_sum")?,
+            pretty_date_time: con.hget(game_number, "pretty_date_time")?,
+            date_string: con.hget(game_number, "date_string")?,
+            time_string: con.hget(game_number, "time_string")?,
+        };
+        games.push(game);
+    }
+    Ok(games)
 }
 
 async fn polls_exist(pool: &PgPool) -> Result<bool, Error> {
@@ -873,7 +881,7 @@ fn get_duration_since_update() -> String {
         }
         60..=119 => "Last Update: 1 hour ago".to_string(),
         _ => format!(
-            "Last Update: {hours} ago",
+            "Last Update: {hours} hours ago",
             hours = time_since_update.num_hours()
         ),
     }
@@ -886,8 +894,7 @@ pub struct Game {
     away_team: String,
     home_team_id: i32,
     home_team: String,
-    srs_sum: BigDecimal,
-    date_time: chrono::NaiveDateTime,
+    srs_sum: f64,
     pretty_date_time: String,
     date_string: String,
     time_string: String,

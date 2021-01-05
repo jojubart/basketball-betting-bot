@@ -115,6 +115,7 @@ dependencies = [
  "error-chain",
  "futures",
  "log",
+ "num-traits",
  "redis",
  "reqwest",
  "scraper",

@@ -29,17 +29,34 @@ async fn main() -> anyhow::Result<()> {
             .await
             .unwrap_or_default();
 
-        // don't send polls in the middle of the night in USA and Europe
-        // three tries to send out polls in case of network error
-        if Utc::now().hour() >= 18 && Utc::now().hour() <= 19 {
-            let games = get_games(
+        cache_games(
+            get_games(
                 &pool,
                 10,
                 east_coast_date_in_x_days(1, false)?,
                 east_coast_date_in_x_days(7, false)?,
             )
             .await
-            .unwrap_or_default();
+            .unwrap_or_default(),
+        )
+        .unwrap_or_else(|error| {
+            dbg!("Can't cache games!", error);
+        });
+
+        // don't send polls in the middle of the night in USA and Europe
+        // three tries to send out polls in case of network error
+        if Utc::now().hour() >= 18 && Utc::now().hour() <= 19 {
+            let mut games = cache_to_games().unwrap_or_default();
+            if games.len() < 11 {
+                games = get_games(
+                    &pool,
+                    10,
+                    east_coast_date_in_x_days(1, false)?,
+                    east_coast_date_in_x_days(7, false)?,
+                )
+                .await
+                .unwrap_or_default();
+            }
 
             for chat_id in chats {
                 let poll_sent_success = send_polls(&pool, chat_id.id, &bot, &games).await;
