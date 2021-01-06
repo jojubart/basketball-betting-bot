@@ -5,3 +5,4 @@ scheduled_tasks/target/
 *.log
 /log
 .idea
+*.html

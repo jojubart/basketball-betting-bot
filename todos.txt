@@ -3,7 +3,6 @@ Bugs:
 	- running should be independent of ini file location [FIXED]
 
 Features:
-	- Cache daily games -> Listen+Notify Postgres + Redis [Prio 1]
 	- self-host DB: https://www.reddit.com/r/PostgreSQL/comments/9xft16/what_to_considers_before_switching_from_managed/
 	- automatically send out weekly results [Prio 2]
 	- add more modes 
@@ -29,3 +28,4 @@ Done:
 
 	- show fraction of correct bets overall [DONE]
 	- weekly_rankings as meterialized view, refresh when scheduled_tasks is called [DONE]
+	- Cache daily games -> Listen+Notify Postgres + Redis [Prio 1] DONE

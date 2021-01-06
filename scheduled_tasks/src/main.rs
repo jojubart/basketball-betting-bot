@@ -16,64 +16,73 @@ async fn main() -> anyhow::Result<()> {
     .await
     .expect("Could not establish connection do database");
 
-    if Utc::now().hour() >= 5 && Utc::now().hour() <= 12 {
-        let scraped_months = get_relevant_months()?;
-        dbg!(&scraped_months);
-        scrape_teams().await?;
-        for month in scraped_months {
-            scrape_games(month).await?;
-        }
-        cache_games(
-            get_games(
-                &pool,
-                10,
-                east_coast_date_in_x_days(1, false)?,
-                east_coast_date_in_x_days(7, false)?,
-            )
-            .await
-            .unwrap_or_default(),
-        )
-        .unwrap_or_else(|error| {
-            dbg!("Can't cache games!", error);
-        });
-    }
     let bot = Bot::builder().build();
+    stop_poll(&pool, &bot).await?;
+    refresh_materialized_views(&pool).await?;
 
-    if active_chats_exist(&pool).await? {
-        let chats = sqlx::query!("SELECT DISTINCT id FROM chats WHERE is_active = True")
-            .fetch_all(&pool)
-            .await
-            .unwrap_or_default();
-
-        // don't send polls in the middle of the night in USA and Europe
-        // three tries to send out polls in case of network error
-        if Utc::now().hour() >= 18 && Utc::now().hour() <= 19 {
-            let mut games = cache_to_games().unwrap_or_default();
-            if games.len() < 11 {
-                games = get_games(
+    match Utc::now().hour() {
+        0..=4 | 7..=8 | 20..=23 => scrape_games_live(&pool).await.unwrap(),
+        5..=6 => {
+            cache_games(
+                get_games(
                     &pool,
                     10,
                     east_coast_date_in_x_days(1, false)?,
                     east_coast_date_in_x_days(7, false)?,
                 )
                 .await
-                .unwrap_or_default();
+                .unwrap_or_default(),
+            )
+            .unwrap_or_else(|error| {
+                dbg!("Can't cache games!", error);
+            });
+
+            scrape_games_live(&pool).await.unwrap();
+        }
+
+        9..=11 => {
+            let scraped_months = get_relevant_months()?;
+            dbg!(&scraped_months);
+            scrape_teams().await?;
+            for month in scraped_months {
+                scrape_games(month).await?;
             }
+        }
 
-            for chat_id in chats {
-                let poll_sent_success = send_polls(&pool, chat_id.id, &bot, &games).await;
+        12..=17 => {}
+        18..=19 => {
+            if active_chats_exist(&pool).await? {
+                let chats = sqlx::query!("SELECT DISTINCT id FROM chats WHERE is_active = True")
+                    .fetch_all(&pool)
+                    .await
+                    .unwrap_or_default();
 
-                if let Err(e) = poll_sent_success {
-                    eprintln!(
-                        "ERROR {e}\nCould not send polls for chat_id {chat_id}",
-                        e = e,
-                        chat_id = chat_id.id
-                    );
+                let mut games = cache_to_games().unwrap_or_default();
+                if games.len() < 11 {
+                    games = get_games(
+                        &pool,
+                        10,
+                        east_coast_date_in_x_days(1, false)?,
+                        east_coast_date_in_x_days(7, false)?,
+                    )
+                    .await
+                    .unwrap_or_default();
+                }
+
+                for chat_id in chats {
+                    let poll_sent_success = send_polls(&pool, chat_id.id, &bot, &games).await;
+
+                    if let Err(e) = poll_sent_success {
+                        eprintln!(
+                            "ERROR {e}\nCould not send polls for chat_id {chat_id}",
+                            e = e,
+                            chat_id = chat_id.id
+                        );
+                    }
                 }
             }
         }
-        stop_poll(&pool, &bot).await?;
-        refresh_materialized_views(&pool).await?;
+        _ => {}
     }
 
     Ok(())

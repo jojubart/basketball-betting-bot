@@ -378,6 +378,45 @@ pub async fn get_games(
     Ok(games)
 }
 
+pub fn set_last_updated(current_update: chrono::DateTime<FixedOffset>) -> redis::RedisResult<()> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_connection()?;
+
+    let prev_update = con
+        .get("last_updated".to_string())
+        .unwrap_or_else(|_| "2000-01-01T01:00:00-05:00".to_string());
+
+    let prev_update = chrono::DateTime::parse_from_rfc3339(&prev_update).unwrap();
+    if prev_update < current_update {
+        let _: () = con.set("last_updated", current_update.to_rfc3339())?;
+    }
+
+    Ok(())
+}
+
+pub fn get_duration_since_update() -> redis::RedisResult<String> {
+    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let mut con = client.get_connection()?;
+
+    let last_updated = con
+        .get("last_updated".to_string())
+        .unwrap_or_else(|_| "20-01-01T01:00:00-05:00".to_string());
+    let last_updated = chrono::DateTime::parse_from_rfc3339(&last_updated).unwrap();
+
+    let time_since_update = chrono::Utc::now() - last_updated.with_timezone(&chrono::Utc);
+    match time_since_update.num_minutes() {
+        0..=59 => Ok(format!(
+            "Last Update: {minutes}min ago",
+            minutes = time_since_update.num_minutes()
+        )),
+        60..=119 => Ok("Last Update: 1 hour ago".to_string()),
+        _ => Ok(format!(
+            "Last Update: {hours} hours ago",
+            hours = time_since_update.num_hours()
+        )),
+    }
+}
+
 pub fn cache_games(games: Vec<Game>) -> redis::RedisResult<()> {
     let client = redis::Client::open("redis://127.0.0.1/")?;
     let mut con = client.get_connection()?;
@@ -514,7 +553,7 @@ pub async fn show_all_bets_season(
     }
 
     rankings.push('\n');
-    rankings.push_str(&get_duration_since_update());
+    rankings.push_str(&get_duration_since_update().unwrap_or_default());
 
     cx.answer(&rankings).send().await?;
 
@@ -765,7 +804,7 @@ pub async fn show_complete_rankings(
     }
 
     rankings.push('\n');
-    rankings.push_str(&get_duration_since_update());
+    rankings.push_str(&get_duration_since_update().unwrap_or_default());
 
     cx.answer(&rankings).send().await?;
 
@@ -842,14 +881,14 @@ pub async fn show_week_rankings(
     }
 
     rankings.push('\n');
-    rankings.push_str(&get_duration_since_update());
+    rankings.push_str(&get_duration_since_update().unwrap_or_default());
 
     cx.answer(&rankings).send().await?;
 
     Ok(())
 }
 
-fn get_duration_since_update() -> String {
+fn _get_duration_since_update() -> String {
     let now = chrono::Utc::now();
 
     let yesterday = now - Duration::hours(24);
