@@ -70,7 +70,7 @@ pub async fn send_polls(
     // that means we have not entry yet for the chat in bet_weeks and want to send the polls for
     // the upcoming week right away
     // if today is the last day of a bet_week, we want to send out new polls for the upcoming week
-    if bet_week.week_number == 0 || tomorrow >= bet_week.end_date {
+    if bet_week.week_number == 0 || tomorrow > bet_week.end_date {
         let week_number = bet_week.week_number + 1;
 
         let bet_week_id = insert_bet_week(
@@ -322,8 +322,8 @@ pub async fn get_games(
          FROM public.full_game_information 
          WHERE DATE(date_time AT TIME ZONE 'EST') <= $1 
          AND DATE(date_time AT TIME ZONE 'EST') >= $2 
-         AND srs_home > 0
-         and srs_away > 0
+         AND (srs_home > 0 OR home_wins > home_losses)
+         and (srs_away > 0 OR away_wins > away_losses)
          --AND ABS(srs_home - srs_away) < 5
          ORDER BY srs_sum DESC 
          ) AS tmp ) as tmp2 
@@ -435,7 +435,7 @@ pub fn cache_games(games: Vec<Game>) -> redis::RedisResult<()> {
                 ("time_string", game.time_string.to_owned()),
             ],
         )?;
-        let _: () = con.expire(game_number, 60 * 60 * 18)?;
+        let _: () = con.expire(game_number, 60 * 60 * 24)?;
     }
     Ok(())
 }

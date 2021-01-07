@@ -15,9 +15,12 @@ bets you guys got right, and doesn't care about weekly wins if that's more
 your style.
 
 To get started add the bot (@BasketballBettingBot) to your group chat and 
-send /start into the chat. Afterwards you'll receive the 11 games to bet on 
-forthe upcoming weeks. Each game is sent to you in the form of a poll, 
+send /start into the chat. Afterward you'll receive the games to bet on 
+for the upcoming week. Each game is sent to you in the form of a poll, 
 so just answer these to participate in the game. 
+After sending /start for the first time, all you need to do is answer the polls
+that will be sent to you weekly.
+This continues until the NBA season ends or you end the season yourself (/stop_season).
 The bot can't read your group chat's messages, just the ones starting with an '/',
 so don't worry about trash talking him - he won't know. 
 

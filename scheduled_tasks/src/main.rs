@@ -21,7 +21,7 @@ async fn main() -> anyhow::Result<()> {
     refresh_materialized_views(&pool).await?;
 
     match Utc::now().hour() {
-        0..=4 | 7..=8 | 20..=23 => scrape_games_live(&pool).await.unwrap(),
+        0..=4 | 7..=9 | 20..=23 => scrape_games_live(&pool).await.unwrap(),
         5..=6 => {
             cache_games(
                 get_games(
@@ -40,13 +40,26 @@ async fn main() -> anyhow::Result<()> {
             scrape_games_live(&pool).await.unwrap();
         }
 
-        9..=11 => {
+        10..=11 => {
             let scraped_months = get_relevant_months()?;
             dbg!(&scraped_months);
             scrape_teams().await?;
             for month in scraped_months {
                 scrape_games(month).await?;
             }
+            cache_games(
+                get_games(
+                    &pool,
+                    10,
+                    east_coast_date_in_x_days(1, false)?,
+                    east_coast_date_in_x_days(7, false)?,
+                )
+                .await
+                .unwrap_or_default(),
+            )
+            .unwrap_or_else(|error| {
+                dbg!("Can't cache games!", error);
+            });
         }
 
         12..=17 => {}

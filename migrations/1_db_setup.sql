@@ -135,11 +135,15 @@ CREATE OR REPLACE VIEW full_game_information AS
 		,games.away_team AS away_team_id
 		,t1.name AS away_team
 		--,games.away_points
+		,t1.wins AS away_wins
+		,t2.losses AS away_losses
 		,t1.srs AS srs_away
 		,games.home_team AS home_team_id
 		,t2.name AS home_team
+		,t2.wins AS home_wins
+		,t2.losses AS home_losses
 		--,games.home_points
-		,t2.srs as srs_home
+		,t2.srs AS srs_home
 		,t1.srs + t2.srs AS srs_sum
 
 	FROM games 
