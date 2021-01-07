@@ -135,12 +135,15 @@ pub async fn get_bet_week(pool: &PgPool, chat_id: i64) -> Result<BetWeek, Error>
         r#"SELECT 
         id,
         week_number
-        ,MAX(start_date) AS start_date
-        ,MAX(end_date) AS end_date
+        ,start_date
+        ,end_date
         ,polls_sent
         FROM bet_weeks
         WHERE chat_id = $1
-        GROUP BY week_number, id"#,
+        AND end_date = (SELECT MAX(end_date) FROM bet_weeks where chat_id = $1)
+        ORDER BY id ASC
+        LIMIT 1
+        "#,
         chat_id
     )
     .fetch_optional(pool)

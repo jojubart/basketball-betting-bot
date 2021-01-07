@@ -61,7 +61,7 @@ async fn handle_poll_answer(
     cx: UpdateWithCx<teloxide::types::PollAnswer>,
     pool: &PgPool,
 ) -> Result<(), Error> {
-    println!("{:?}", cx.update.option_ids);
+    dbg!(&cx.update.option_ids);
     // check if it's a poll that the bot sent
     // is probably unnecessary, since per the official docs poll answers not sent by the bot itself
     // are ignored. Since this could change in the future, I'm gonna play it safe.
@@ -69,6 +69,7 @@ async fn handle_poll_answer(
         .await
         .expect("could not get poll_id!")
     {
+        dbg!("poll_id not found!", cx.update.poll_id);
         return Ok(());
     }
     let (chat_id, game_id) = get_chat_id_game_id_from_poll(pool, cx.update.poll_id.clone())
