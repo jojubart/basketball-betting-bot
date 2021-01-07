@@ -325,7 +325,7 @@ pub async fn get_games(
          AND (srs_home > 0 OR home_wins > home_losses)
          and (srs_away > 0 OR away_wins > away_losses)
          --AND ABS(srs_home - srs_away) < 5
-         ORDER BY srs_sum DESC 
+         ORDER BY ((win_pct_away + win_pct_home) + srs_sum/20) DESC 
          ) AS tmp ) as tmp2 
  ) as tmp3
     ORDER BY srs_sum DESC LIMIT $3) 
@@ -346,7 +346,7 @@ pub async fn get_games(
          FROM public.full_game_information 
          WHERE DATE(date_time AT TIME ZONE 'EST') <= $1 
          AND DATE(date_time AT TIME ZONE 'EST') >= $2 
-         ORDER BY srs_sum ASC 
+         ORDER BY ((win_pct_away + win_pct_home) + srs_sum/20)
          LIMIT 1 
          ) ORDER BY date_time ASC 
 

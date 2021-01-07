@@ -136,8 +136,9 @@ CREATE OR REPLACE VIEW full_game_information AS
 		,t1.name AS away_team
 		--,games.away_points
 		,t1.wins AS away_wins
-		,t2.losses AS away_losses
+		,t1.losses AS away_losses
 		,t1.srs AS srs_away
+		,ROUND(CAST(t1.wins AS DECIMAL)/greatest(t1.wins+t1.losses, 1), 3) AS win_pct_away
 		,games.home_team AS home_team_id
 		,t2.name AS home_team
 		,t2.wins AS home_wins
@@ -145,6 +146,7 @@ CREATE OR REPLACE VIEW full_game_information AS
 		--,games.home_points
 		,t2.srs AS srs_home
 		,t1.srs + t2.srs AS srs_sum
+		,ROUND(CAST(t2.wins AS DECIMAL)/greatest(t2.wins+t2.losses, 1), 3) AS win_pct_home
 
 	FROM games 
 	JOIN
