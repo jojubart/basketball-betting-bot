@@ -227,7 +227,7 @@ pub async fn scrape_games_live(pool: &PgPool) -> anyhow::Result<()> {
             date = node
                 .attr("data-last-update")
                 .unwrap_or("2000-01-01T00:00:00"),
-            offset = "-05:00"
+            offset = "-04:00"
         ))?;
         let game_date = chrono::DateTime::parse_from_str(
             &format!(

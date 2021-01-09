@@ -403,10 +403,13 @@ pub fn get_duration_since_update() -> redis::RedisResult<String> {
 
     let last_updated = con
         .get("last_updated".to_string())
-        .unwrap_or_else(|_| "20-01-01T01:00:00-05:00".to_string());
+        .unwrap_or_else(|_| "2000-01-01T01:00:00-05:00".to_string());
     let last_updated = chrono::DateTime::parse_from_rfc3339(&last_updated).unwrap();
 
     let time_since_update = chrono::Utc::now() - last_updated.with_timezone(&chrono::Utc);
+    dbg!(chrono::Utc::now().with_timezone(&chrono::Utc));
+    dbg!(last_updated.with_timezone(&chrono::Utc));
+    dbg!(time_since_update.num_minutes());
     match time_since_update.num_minutes() {
         0..=59 => Ok(format!(
             "Last Update: {minutes}min ago",
