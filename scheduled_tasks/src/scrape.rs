@@ -82,6 +82,15 @@ pub async fn scrape_games(month: String) -> Result<(), Error> {
             continue;
         }
 
+        // if game is more than 9 days away we don't want to scrape it
+        if dt?
+            > chrono::Utc::now()
+                .checked_add_signed(chrono::Duration::days(9))
+                .unwrap()
+        {
+            continue;
+        }
+
         let away_team = td[2].to_string();
 
         // if row has 4 entries, the game was not played yet
