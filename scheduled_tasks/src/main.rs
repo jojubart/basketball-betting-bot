@@ -40,7 +40,7 @@ async fn main() -> anyhow::Result<()> {
             scrape_games_live(&pool).await.unwrap();
         }
 
-        10..=19 => {
+        10..=11 => {
             let scraped_months = get_relevant_months()?;
             dbg!(&scraped_months);
             scrape_teams().await?;
