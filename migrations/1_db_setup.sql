@@ -148,6 +148,10 @@ CREATE OR REPLACE VIEW full_game_information AS
 		,t1.srs + t2.srs AS srs_sum
 		,ROUND(CAST(t2.wins AS DECIMAL)/greatest(t2.wins+t2.losses, 1), 3) AS win_pct_home
 
+		-- define game quality as mix of (SUM OF COMBINED WINNING PERCENTAGES) and (HOW CLOSE THEIR WINNING PERCENTAGE IS TO EACH OTHER)
+		,(ROUND(CAST(t1.wins AS DECIMAL)/greatest(t1.wins+t1.losses, 1), 3) + ROUND(CAST(t2.wins AS DECIMAL)/greatest(t2.wins+t2.losses, 1), 3) ) +
+		(1 - 2 * ABS(ROUND(CAST(t1.wins AS DECIMAL)/greatest(t1.wins+t1.losses, 1), 3) - ROUND(CAST(t2.wins AS DECIMAL)/greatest(t2.wins+t2.losses, 1), 3) )) AS game_quality
+
 	FROM games 
 	JOIN
 	teams AS t1 ON games.away_team = t1.id
@@ -234,8 +238,8 @@ WHERE users.id NOT IN
  )  
 ;
 
-	
-CREATE MATERIALIZED VIEW weekly_rankings AS
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS weekly_rankings AS
 SELECT
 	users.id
 	,users.first_name

@@ -307,32 +307,31 @@ pub async fn get_games(
 ) -> anyhow::Result<Vec<Game>> {
     let games_raw = query!(
         r#"
-        (SELECT * FROM  
- (SELECT DISTINCT ON (away_team_id, home_team_id) * FROM 
-         (SELECT * FROM  
-         (SELECT  
-             game_id 
-             ,away_team_id 
-             ,away_team 
-             ,home_team_id 
-             ,home_team 
-             ,srs_sum 
-             ,date_time AT TIME ZONE 'EST' as date_time 
-             ,DATE(date_time AT TIME ZONE 'EST') AS date 
-             ,to_char(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD') AS date_string
-             ,to_char(date_time AT TIME ZONE 'EST', 'HH:MI AM TZ') AS time_string
-             ,to_char(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD HH:MI AM TZ') AS pretty_date_time 
-         FROM public.full_game_information 
-         WHERE DATE(date_time AT TIME ZONE 'EST') <= $1 
-         AND DATE(date_time AT TIME ZONE 'EST') >= $2 
-         AND (srs_home > 0 OR home_wins > home_losses)
-         AND (srs_away > 0 OR away_wins > away_losses)
-         --AND ABS(srs_home - srs_away) < 5
-         ORDER BY ((win_pct_away + win_pct_home) + (1 - 5 * ABS(win_pct_home - win_pct_away))) DESC 
-         LIMIT $3
-         ) AS tmp ) as tmp2 
- ) as tmp3
-   ) 
+   (SELECT * FROM (SELECT DISTINCT ON (home_team_id, away_team_id)
+               game_id
+               ,away_team_id
+               ,away_team
+               ,home_team_id
+               ,home_team
+               ,srs_sum
+               ,date_time AT TIME ZONE 'EST' as date_time
+               ,DATE(date_time AT TIME ZONE 'EST') AS date
+               ,to_char(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD') AS date_string
+               ,to_char(date_time AT TIME ZONE 'EST', 'HH:MI AM TZ') AS time_string
+               ,to_char(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD HH:MI AM TZ') AS pretty_date_time
+               ,game_quality
+ 
+             FROM public.full_game_information
+           WHERE DATE(date_time AT TIME ZONE 'EST') <= $1
+           AND DATE(date_time AT TIME ZONE 'EST') >= $2
+           AND (srs_home > 0 OR home_wins > home_losses)
+           AND (srs_away > 0 OR away_wins > away_losses)
+           --AND ABS(srs_home - srs_away) < 5
+           ORDER BY away_team_id, home_team_id, game_id DESC)
+ as tmp1
+ ORDER BY  game_quality DESC
+ LIMIT $3)
+
          UNION  
           
          (SELECT 
@@ -347,6 +346,7 @@ pub async fn get_games(
              ,TO_CHAR(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD') AS date_string
              ,TO_CHAR(date_time AT TIME ZONE 'EST', 'HH:MI AM TZ') AS time_string
              ,TO_CHAR(date_time AT TIME ZONE 'EST', 'YYYY-MM-DD HH:MI AM TZ') AS pretty_date_time 
+             ,game_quality
          FROM public.full_game_information 
          WHERE DATE(date_time AT TIME ZONE 'EST') <= $1 
          AND DATE(date_time AT TIME ZONE 'EST') >= $2 
