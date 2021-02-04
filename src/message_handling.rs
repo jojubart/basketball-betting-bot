@@ -14,10 +14,7 @@ use crate::states::Dialogue;
 type In = DialogueWithCx<Message, Dialogue, Infallible>;
 
 pub async fn run() {
-    //teloxide::enable_logging!();
-    //log::info!("Starting the bot!");
-
-    #[allow(deprecated)]
+    // create a new bot: env variable TELOXIDE_TOKEN must be set (bot token)
     let bot = Bot::builder().build();
 
     Dispatcher::new(bot)

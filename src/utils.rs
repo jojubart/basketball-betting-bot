@@ -665,7 +665,8 @@ pub async fn add_bet(
     query!(
         r#"
         INSERT INTO bets(game_id, chat_id, user_id, bet, poll_id) VALUES 
-        ($1, $2, $3, $4, $5);
+        ($1, $2, $3, $4, $5)
+        ON CONFLICT DO NOTHING;
         "#,
         game_id,
         chat_id,

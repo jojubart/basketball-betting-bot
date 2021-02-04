@@ -101,6 +101,7 @@ CREATE TABLE IF NOT EXISTS bets (
 	,user_id BIGINT REFERENCES users(id)
 	,bet INTEGER REFERENCES teams(id)
 	,poll_id TEXT REFERENCES polls(id)
+	,UNIQUE(chat_id, user_id, bet, poll_id)
 );
 
 
