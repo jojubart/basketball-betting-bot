@@ -92,6 +92,10 @@ async fn handle_poll_answer(
         .await?;
     }
 
+    if cx.update.option_ids.is_empty() {
+        return Ok(());
+    }
+
     let bet = bet_to_team_id(pool, cx.update.option_ids[0], game_id)
         .await
         .expect("Could not convert bet to team_id");
