@@ -847,6 +847,7 @@ pub async fn show_game_results(
     }
 
     let mut game_results = String::from("Game Results:\n");
+    game_results.push('\n');
 
     for game in started_games {
         let game_id = game.game_id.unwrap_or_default();
@@ -862,6 +863,7 @@ pub async fn show_game_results(
             home_points = home_points,
             home_team = home_team
         ));
+        game_results.push('\n');
 
         let correct_bet_users = query!(
             r#"
