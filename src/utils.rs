@@ -857,13 +857,12 @@ pub async fn show_game_results(
         let away_points = game.away_points.unwrap_or_default();
         let home_points = game.home_points.unwrap_or_default();
         game_results.push_str(&format!(
-            "{away_points} {away_team}\n{home_points} {home_team}\nCorrect Bet:\n",
+            "{away_points} {away_team}\n{home_points} {home_team}\n\nCorrect Bet:\n",
             away_points = away_points,
             away_team = away_team,
             home_points = home_points,
             home_team = home_team
         ));
-        game_results.push('\n');
 
         let correct_bet_users = query!(
             r#"
