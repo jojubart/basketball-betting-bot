@@ -868,6 +868,7 @@ pub async fn show_game_results(
             r#"
             SELECT first_name from users
             WHERE users.id IN (SELECT user_id FROM correct_bets WHERE game_id = $1 AND chat_id=$2)
+            ORDER BY first_name
             "#,
             game_id,
             chat_id
@@ -877,14 +878,14 @@ pub async fn show_game_results(
 
         let tmp = correct_bet_users.get(0);
         if tmp.is_none() {
-            game_results.push_str("\nNobody");
+            game_results.push_str("Nobody\n\n");
         }
 
         for user in correct_bet_users {
             let first_name = user.first_name.unwrap_or_default();
             game_results.push_str(&format!("{}\n", first_name));
         }
-        game_results.push('\n');
+        game_results.push_str("\n\n");
     }
     cx.answer(&game_results).send().await?;
 
