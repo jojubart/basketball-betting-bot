@@ -875,6 +875,11 @@ pub async fn show_game_results(
         .fetch_all(pool)
         .await?;
 
+        let tmp = correct_bet_users.get(0);
+        if tmp.is_none() {
+            game_results.push_str("\nNobody");
+        }
+
         for user in correct_bet_users {
             let first_name = user.first_name.unwrap_or_default();
             game_results.push_str(&format!("{}\n", first_name));
