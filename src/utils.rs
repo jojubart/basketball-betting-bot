@@ -486,7 +486,7 @@ pub async fn stop_poll(pool: &PgPool, bot: &teloxide::Bot) -> Result<(), Error> 
         r#"
         SELECT id, local_id, chat_id FROM polls
        WHERE game_id IN
-       (SELECT id FROM games WHERE now() at time zone 'EST' >= date_time)
+       (SELECT id FROM games WHERE now() at time zone 'EST' >= date_time AT TIME ZONE 'EST')
        AND is_open = True;
         "#
     )
@@ -815,6 +815,72 @@ pub async fn show_complete_rankings(
     rankings.push_str(&get_duration_since_update().unwrap_or_default());
 
     cx.answer(&rankings).send().await?;
+
+    Ok(())
+}
+
+pub async fn show_game_results(
+    cx: &UpdateWithCx<Message>,
+    pool: &PgPool,
+    chat_id: i64,
+    week_number: i32,
+) -> Result<(), Error> {
+    let started_games = query!(
+        r#"
+        SELECT game_id,away_team, away_points, home_team, home_points, date_time
+        FROM full_game_information
+        WHERE 
+        NOW() AT TIME ZONE 'EST' >= date_time AT TIME ZONE 'EST'
+        AND
+        game_id IN (SELECT game_id from polls join bet_weeks ON polls.bet_week_id = bet_weeks.id WHERE polls.chat_id = $1 AND week_number=$2)
+        ORDER BY date_time ASC
+        "#,
+        chat_id,
+        week_number
+    ).fetch_all(pool).await?;
+
+    let tmp = started_games.get(0);
+    if tmp.is_none() {
+        cx.answer_str("Seems like no games have been played this week so far!")
+            .await?;
+        return Ok(());
+    }
+
+    let mut game_results = String::from("Game Results:\n");
+
+    for game in started_games {
+        let game_id = game.game_id.unwrap_or_default();
+
+        let away_team = game.away_team.unwrap_or_default();
+        let home_team = game.home_team.unwrap_or_default();
+        let away_points = game.away_points.unwrap_or_default();
+        let home_points = game.home_points.unwrap_or_default();
+        game_results.push_str(&format!(
+            "{away_points} {away_team}\n{home_points} {home_team}\nCorrect Bet:\n",
+            away_points = away_points,
+            away_team = away_team,
+            home_points = home_points,
+            home_team = home_team
+        ));
+
+        let correct_bet_users = query!(
+            r#"
+            SELECT first_name from users
+            WHERE users.id IN (SELECT user_id FROM correct_bets WHERE game_id = $1 AND chat_id=$2)
+            "#,
+            game_id,
+            chat_id
+        )
+        .fetch_all(pool)
+        .await?;
+
+        for user in correct_bet_users {
+            let first_name = user.first_name.unwrap_or_default();
+            game_results.push_str(&format!("{}\n", first_name));
+        }
+        game_results.push('\n');
+    }
+    cx.answer(&game_results).send().await?;
 
     Ok(())
 }

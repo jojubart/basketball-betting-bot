@@ -4,6 +4,7 @@ standings - Show standings for the ongoing week
 full_standings - Show standings for the whole season
 all_bets - Show fraction of correct bets for the whole season (Alternative to weekly standings)
 week_standings - Show standings for a specified week
+game_results - Show game results for ongoing week 
 sage - Ceanse the chat from toxic energy
 stop_season - End the betting season and receive final standings. THIS CAN'T BE UNDONE!
 

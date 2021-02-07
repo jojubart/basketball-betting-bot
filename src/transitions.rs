@@ -7,7 +7,7 @@ use basketball_betting_bot::{
     utils::{
         cache_to_games, change_active_chat_status, chat_is_known, east_coast_date_in_x_days,
         get_bet_week, get_games, remove_chat, send_polls, show_all_bets_season,
-        show_complete_rankings, show_week_rankings, user_is_admin,
+        show_complete_rankings, show_game_results, show_week_rankings, user_is_admin,
     },
 };
 use sqlx::postgres::PgPool;
@@ -124,6 +124,21 @@ To get a list of all commands the bot understands, send /help
             show_all_bets_season(&pool, &cx, chat_id)
                 .await
                 .unwrap_or_default();
+        }
+        "/game_results" | "/game_results@BasketballBettingBot" => {
+            let chat_id = cx.update.chat_id();
+            let bet_week = get_bet_week(&pool, chat_id).await;
+
+            match bet_week {
+                Err(e) => {
+                    dbg!(e);
+                    cx.answer_str("Sorry, could not send standings right now!")
+                        .await?;
+                }
+                Ok(bet_week) => show_game_results(&cx, &pool, chat_id, bet_week.week_number)
+                    .await
+                    .unwrap_or_default(),
+            }
         }
         "/stop_season" | "/stop_season@BasketballBettingBot" => {
             let chat_id = cx.update.chat_id();
