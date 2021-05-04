@@ -48,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
         }
 
         10..=11 => {
-            let scraped_months = get_relevant_months()?;
+            let scraped_months = get_relevant_months();
             dbg!(&scraped_months);
             scrape_teams().await?;
             for month in scraped_months {
@@ -134,7 +134,7 @@ async fn active_chats_exist(pool: &PgPool) -> Result<bool, Error> {
     )
 }
 
-fn get_relevant_months() -> Result<Vec<String>, Error> {
+fn get_relevant_months() -> Vec<String> {
     let months_ids = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
     let months_names = vec![
         "january",
@@ -165,13 +165,11 @@ fn get_relevant_months() -> Result<Vec<String>, Error> {
         .unwrap()
         .month();
 
-    let mut relevant_months = vec![];
-
-    relevant_months.push(months[&current_month].to_string());
+    let mut relevant_months = vec![months[&current_month].to_string()];
 
     if month_in_9_days != current_month {
         relevant_months.push(months[&month_in_9_days].to_string());
     }
 
-    Ok(relevant_months)
+    relevant_months
 }

@@ -10,7 +10,7 @@ pub enum Error {
     #[error("error from Telegram: {0}")]
     TelegramError(#[from] RequestError),
     #[error("error from SQLx: {0}")]
-    SQLxError(#[from] sqlx::Error),
+    SqlxError(#[from] sqlx::Error),
     #[error("error from std::env: {0}")]
     EnvError(#[from] std::env::VarError),
     #[error("error from reqwest: {0}")]

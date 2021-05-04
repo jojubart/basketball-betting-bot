@@ -269,7 +269,7 @@ pub async fn poll_is_in_db(pool: &PgPool, game_id: i32, chat_id: i64) -> Result<
     .fetch_one(pool)
     .await?
     .exists
-    .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
+    .ok_or(Error::SqlxError(sqlx::Error::RowNotFound))
 }
 
 pub async fn poll_is_in_db_by_poll_id(pool: &PgPool, poll_id: String) -> Result<bool, Error> {
@@ -280,7 +280,7 @@ pub async fn poll_is_in_db_by_poll_id(pool: &PgPool, poll_id: String) -> Result<
     .fetch_one(pool)
     .await?
     .exists
-    .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
+    .ok_or(Error::SqlxError(sqlx::Error::RowNotFound))
 }
 
 async fn add_poll(
@@ -487,7 +487,7 @@ async fn polls_exist(pool: &PgPool) -> Result<bool, Error> {
         .fetch_one(pool)
         .await?
         .exists
-        .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
+        .ok_or(Error::SqlxError(sqlx::Error::RowNotFound))
 }
 pub async fn stop_poll(pool: &PgPool, bot: &teloxide::Bot) -> Result<(), Error> {
     if !polls_exist(pool).await? {
@@ -663,7 +663,7 @@ pub async fn chat_is_known(pool: &PgPool, chat_id: i64) -> Result<bool, Error> {
 
     is_known
         .exists
-        .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
+        .ok_or(Error::SqlxError(sqlx::Error::RowNotFound))
 }
 
 pub async fn add_bet(
@@ -705,7 +705,7 @@ pub async fn bet_to_team_id(pool: &PgPool, bet: i32, game_id: i32) -> Result<i32
         .fetch_one(pool)
         .await?
         .away_team
-        .ok_or(Error::SQLxError(sqlx::Error::RowNotFound)),
+        .ok_or(Error::SqlxError(sqlx::Error::RowNotFound)),
         1 => query!(
             r#"
             SELECT home_team FROM games WHERE id = $1;
@@ -715,7 +715,7 @@ pub async fn bet_to_team_id(pool: &PgPool, bet: i32, game_id: i32) -> Result<i32
         .fetch_one(pool)
         .await?
         .home_team
-        .ok_or(Error::SQLxError(sqlx::Error::RowNotFound)),
+        .ok_or(Error::SqlxError(sqlx::Error::RowNotFound)),
         _ => panic!("Could not convert bet to team_id!"),
     }
 }
@@ -742,7 +742,7 @@ pub async fn user_is_in_db(pool: &PgPool, user_id: i64) -> Result<bool, Error> {
         .fetch_one(pool)
         .await?
         .exists
-        .ok_or(Error::SQLxError(sqlx::Error::RowNotFound))
+        .ok_or(Error::SqlxError(sqlx::Error::RowNotFound))
 }
 
 pub async fn add_user(

@@ -16,7 +16,7 @@ pretty_env_logger = "0.4.0"
 tokio = { version =  "0.2.11", features = ["rt-threaded", "macros"] }
 
 basketball_betting_bot = {path = "../../basketball-betting-bot"}
-sqlx = {version = "0.4.1", features = ["postgres","time", "chrono","runtime-tokio-rustls", "bigdecimal"] }
+sqlx = {version = "0.5.2", features = ["postgres","time", "chrono","runtime-tokio-rustls", "bigdecimal"] }
 chrono = "0.4.19"
 anyhow = "1.0.36"
 serde = "1.0.118"
