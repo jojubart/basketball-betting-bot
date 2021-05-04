@@ -9,7 +9,7 @@ use teloxide::KnownApiErrorKind;
 
 fn east_coast_date_today() -> Result<chrono::NaiveDate, Error> {
     let today_east_coast_delayed_format = chrono::Utc::now()
-        .checked_sub_signed(chrono::Duration::hours(5))
+        .checked_sub_signed(chrono::Duration::hours(4))
         .unwrap()
         .format("%Y-%m-%d")
         .to_string();
@@ -23,7 +23,7 @@ fn east_coast_date_today() -> Result<chrono::NaiveDate, Error> {
 /// past: describes if you want the day x days in the past (true) or in the future (false)
 pub fn east_coast_date_in_x_days(days: i64, past: bool) -> Result<chrono::NaiveDate, Error> {
     let east_coast_datetime = chrono::Utc::now()
-        .checked_sub_signed(chrono::Duration::hours(5))
+        .checked_sub_signed(chrono::Duration::hours(4))
         .unwrap();
     let east_coast_delayed_format = match past {
         true => east_coast_datetime
@@ -65,12 +65,24 @@ pub async fn send_polls(
     );
     let bet_week = get_bet_week(pool, chat_id).await?;
     let tomorrow = east_coast_date_in_x_days(1, false)?;
+    let today = east_coast_date_in_x_days(0, true)?;
+
+    if today > chrono::NaiveDate::parse_from_str("2021-05-09", "%Y-%m-%d")? {
+        log::info!("{}", "Not sending polls - season ended!".to_string());
+
+        return Ok(());
+    }
 
     // if week_number is 0 it's the first time polls are sent to the chat
     // that means we have not entry yet for the chat in bet_weeks and want to send the polls for
     // the upcoming week right away
     // if today is the last day of a bet_week, we want to send out new polls for the upcoming week
     if bet_week.week_number == 0 || tomorrow > bet_week.end_date {
+        if bet_week.end_date > chrono::NaiveDate::parse_from_str("2021-05-09", "%Y-%m-%d")? {
+            bot.send_message(chat_id, "This is the last week of the NBA season!")
+                .send()
+                .await?;
+        }
         let week_number = bet_week.week_number + 1;
 
         let bet_week_id = insert_bet_week(
